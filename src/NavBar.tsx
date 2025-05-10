@@ -18,8 +18,9 @@ function Navbar({ debtAmount }: NavbarProps): JSX.Element | null {
     const currentPath = location.pathname;
     console.log(currentPath);
 
-    if (currentPath === "/records") {
+    if (currentPath != "/") {
         const navLinks = [
+            { label: "今日餐點", to: "/TodayMeals" },
             { label: "用餐紀錄", to: "/records" },
             { label: "賒帳紀錄", to: "/debt-records" },
             { label: "店員點餐", to: "/order" },

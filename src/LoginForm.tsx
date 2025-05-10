@@ -12,7 +12,7 @@ function LoginForm() {
     if (username === 'admin' && password === '1234') {
       setMessage('✅ 登入成功！歡迎 admin');
       setTimeout(() => {
-        navigate('/records');  // 導向紀錄頁
+        navigate('/TodayMeals');  // 導向紀錄頁
       }, 1000);
     } else {
       setMessage('❌ 帳號或密碼錯誤');
