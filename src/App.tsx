@@ -1,15 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginForm from "./LoginForm";
 import RecordsPage from "./RecordsPage";
-import MainPage from "./MainPage";
 import "./NavBar.css";
 
 function App() {
     return (
         <>
             <Routes>
-                <Route path="/" element={<MainPage />} />
-                <Route path="/login" element={<LoginForm />} />
+                <Route path="/" element={<LoginForm />} />
                 <Route path="/records" element={<RecordsPage />} />
             </Routes>
         </>
