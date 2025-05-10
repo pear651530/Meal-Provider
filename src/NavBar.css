@@ -1,0 +1,16 @@
+.navbar {
+    position: fixed; /* Freeze 在視窗上緣 */
+    top: 0;
+    left: 0;
+    width: 100vw; /* 確保寬度和視窗一樣 */
+    background: #333;
+    padding: 10px 20px;
+    z-index: 1000;
+}
+
+.navbar a {
+    color: white;
+    margin-right: 15px;
+    text-decoration: none;
+    font-weight: bold;
+}
