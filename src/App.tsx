@@ -3,6 +3,7 @@ import LoginForm from "./LoginForm";
 import TodayMealsPage from "./TodayMealsPage";
 import RecordsPage from "./RecordsPage";
 import StaffOrderPage from "./StaffOrderPage";
+import MenuEditorPage from "./MenuEditorPage";
 import "./NavBar.css";
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
                 <Route path="/TodayMeals" element={<TodayMealsPage />} />
                 <Route path="/records" element={<RecordsPage />} />
                 <Route path="/orders" element={<StaffOrderPage />} />
+                <Route path="/menuEditor" element={<MenuEditorPage />} />
             </Routes>
         </>
     );
