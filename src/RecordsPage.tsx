@@ -117,7 +117,7 @@ function RecordsPage(): JSX.Element {
                 }}
             >
                 <div style={{ width: "80vw" }}>
-                    <h2>🍱 歷史用餐紀錄</h2>
+                    <h2>歷史用餐紀錄</h2>
                     <table
                         id="recordsTable"
                         className="display"
@@ -137,10 +137,14 @@ function RecordsPage(): JSX.Element {
                                     <td>{record.date}</td>
                                     <td>{record.meal}</td>
                                     <td>{record.price} 元</td>
-                                    <td>
-                                        {record.paid
-                                            ? "✅ 已付款"
-                                            : "❌ 未付款"}
+                                    <td
+                                        style={{
+                                            color: record.paid
+                                                ? "green"
+                                                : "red",
+                                        }}
+                                    >
+                                        {record.paid ? "已付款" : "未付款"}
                                     </td>
                                 </tr>
                             ))}

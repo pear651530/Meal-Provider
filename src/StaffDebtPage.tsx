@@ -23,7 +23,9 @@ const StaffDebtPage: React.FC = () => {
                 { id: 2, name: "Bob", debt: 80 },
                 { id: 3, name: "Charlie", debt: 0 },
             ];
-            setStaffDebts(mockData);
+            // Filter out staff with zero debt before setting state
+            const filteredData = mockData.filter((staff) => staff.debt > 0);
+            setStaffDebts(filteredData);
         };
 
         fetchStaffDebts();

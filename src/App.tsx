@@ -5,6 +5,8 @@ import RecordsPage from "./RecordsPage";
 import StaffOrderPage from "./StaffOrderPage";
 import MenuEditorPage from "./MenuEditorPage";
 import StaffDebtPage from "./StaffDebtPage";
+import Register from "./Register";
+import ForgotPassword from "./ForgotPassword";
 import "./NavBar.css";
 
 function App() {
@@ -12,6 +14,9 @@ function App() {
         <>
             <Routes>
                 <Route path="/" element={<LoginForm />} />
+                <Route path="/login" element={<Navigate to="/" replace />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/ForgotPassword" element={<ForgotPassword />} />
                 <Route path="/TodayMeals" element={<TodayMealsPage />} />
                 <Route path="/records" element={<RecordsPage />} />
                 <Route path="/orders" element={<StaffOrderPage />} />
