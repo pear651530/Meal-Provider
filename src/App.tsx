@@ -4,6 +4,7 @@ import TodayMealsPage from "./TodayMealsPage";
 import RecordsPage from "./RecordsPage";
 import StaffOrderPage from "./StaffOrderPage";
 import MenuEditorPage from "./MenuEditorPage";
+import StaffDebtPage from "./StaffDebtPage";
 import "./NavBar.css";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
                 <Route path="/records" element={<RecordsPage />} />
                 <Route path="/orders" element={<StaffOrderPage />} />
                 <Route path="/menuEditor" element={<MenuEditorPage />} />
+                <Route path="/staff-debt" element={<StaffDebtPage />} />
             </Routes>
         </>
     );

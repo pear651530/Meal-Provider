@@ -1,11 +1,13 @@
 .navbar {
-    position: fixed; /* Freeze 在視窗上緣 */
+    position: fixed;
     top: 0;
     left: 0;
-    width: 100vw; /* 確保寬度和視窗一樣 */
+    width: 100vw;
     background: #333;
     padding: 10px 20px;
     z-index: 1000;
+    display: flex;
+    justify-content: space-around;
 }
 
 .navbar a {

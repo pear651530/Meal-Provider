@@ -9,11 +9,7 @@ const baseLinkStyle = {
     opacity: 1,
 };
 
-interface NavbarProps {
-    debtAmount: number;
-}
-
-function Navbar({ debtAmount }: NavbarProps): JSX.Element | null {
+function Navbar(): JSX.Element | null {
     const location = useLocation();
     const currentPath = location.pathname;
     //console.log(currentPath);
@@ -28,7 +24,10 @@ function Navbar({ debtAmount }: NavbarProps): JSX.Element | null {
         ];
 
         return (
-            <nav className="navbar" style={{ background: "#333", padding: "10px" }}>
+            <nav
+                className="navbar"
+                style={{ background: "#333", padding: "10px" }}
+            >
                 {/*<span style={{ color: "white", marginLeft: "15px", marginRight: "auto" }}>
                     賒帳金額: ${debtAmount}
                 </span>*/}
