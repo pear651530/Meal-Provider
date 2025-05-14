@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Navbar from "./NavBar";
 import "./NavBar.css";
+import "./StaffOrderPage.css";
 
 interface TodayMeal {
   id: number;
@@ -83,46 +84,37 @@ function StaffOrderPage(): JSX.Element {
     setEmployeeId("");
   };
 
-  if (loading) return <p>載入中...</p>;
+  if (loading) return <p className="loading">載入中...</p>;
 
   return (
     <div>
-      <Navbar debtAmount={0} />
+      <Navbar/>
       <div className="page-content">
-        <h2>🧾 店員點餐</h2>
+        <h2 className="page-title">🧾 店員點餐</h2>
 
-        <label>
-          員工 ID：
-          <input
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            placeholder="請輸入員工 ID"
-            style={{ marginLeft: "10px", padding: "5px" }}
-          />
-        </label>
+        <div className="input-container">
+          <label className="input-id">
+            員工 ID：
+            <input
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+              placeholder="請輸入員工 ID"
+              className="input-id-borad"
+            />
+          </label>
+        </div>
 
-        <div style={{ marginTop: "20px" }}>
+        <div className="meal-list">
           {meals.map((meal) => {
             const selected = selectedMeal?.meal.id === meal.id;
             return (
-              <div
-                key={meal.id}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                  marginBottom: "15px",
-                  backgroundColor: selected ? "#e0f7fa" : "white",
-                }}
-              >
-                <img
-                  src={meal.image}
-                  alt={meal.name}
-                  style={{ width: "100%", height: "auto", marginBottom: "10px" }}
-                />
-                <h3>{meal.name} - {meal.price} 元</h3>
-                <button onClick={() => handleSelectMeal(meal)}>
-                  {selected ? "取消選擇" : "選擇"}
-                </button>
+              <div key={meal.id} className="meal-card">
+                <img src={meal.image} alt={meal.name} className="meal-image"/>
+                <div className="meal-info">
+                  <h3>{meal.name} <span className="meal-price">{meal.price} 元</span></h3>
+                  <button onClick={() => handleSelectMeal(meal)}>
+                    {selected ? "取消選擇" : "選擇"}
+                  </button>
                 {selected && (
                   <div style={{ marginTop: "10px" }}>
                     <div className="form-check">
@@ -152,22 +144,17 @@ function StaffOrderPage(): JSX.Element {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             );
           })}
         </div>
 
-        <button
-          onClick={handleSubmit}
-          style={{
-            marginTop: "20px",
-            padding: "10px 20px",
-            fontSize: "16px",
-            fontWeight: "bold",
-          }}
-        >
-          ✅ 送出訂單
-        </button>
+        <div className="buttom-container">
+          <button onClick={handleSubmit} className="buttom-submit">
+            ✅ 送出訂單
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -143,7 +143,7 @@ function MenuEditorPage(): JSX.Element {
 
   return (
     <div>
-      <Navbar debtAmount={0} />
+      <Navbar/>
       <div className="page-content">
         <h2>📋 菜單調整頁面</h2>
 
