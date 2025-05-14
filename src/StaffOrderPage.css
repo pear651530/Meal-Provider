@@ -1,41 +1,43 @@
-.page-content {
+.staffOrder-page-content {
   width: 100vw;
   padding: 20px;
   font-family: Arial;
   margin-top: 60px; /* 根據 .navbar 的實際高度調整 */
 }
 
-.page-title {
+.staffOrder-page-title {
   margin-bottom: 20px;
   font-size: 28px;
   font-weight: bold;
   color: #37474f;
 }
 
-.input-container {
+.staffOrder-input-container {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
 }
 
-.input-id {
+.staffOrder-input-id {
   font-weight: bold;
   display: flex;
   align-items: center;
 }
 
-.input-id-borad {
+.staffOrder-input-id-borad {
   margin-left: 10px;
   padding: 5px;
 }
 
-.meal-list {
+.staffOrder-meal-list {
+  width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
   gap: 20px;
+  justify-content: center;
 }
 
-.meal-card {
+.staffOrder-meal-card {
   display: flex;
   flex-direction: column;
   background-color: #ffffff;
@@ -45,45 +47,45 @@
   transition: transform 0.2s ease;
 }
 
-.meal-card:hover {
+.staffOrder-meal-card:hover {
   transform: translateY(-3px);
 }
 
-.meal-image {
+.staffOrder-meal-image {
   width: 100%;
   border-radius: 8px;
   object-fit: cover;
   margin-bottom: 12px;
 }
 
-.meal-info h3 {
+.staffOrder-meal-info h3 {
   margin: 0 0 8px;
   color: #333;
 }
 
-.meal-price {
+.staffOrder-meal-price {
   font-size: 16px;
   color: #888;
   margin-left: 10px;
 }
 
-.form-check-input:checked {
+.staffOrder-form-check-input:checked {
   background-color: #007bff; /* 自訂顏色 */
   border-color: #007bff;
 }
 
-.form-check-input {
+.staffOrder-form-check-input {
   border-radius: 50%;
   width: 20px;  /* 調整大小 */
   height: 20px;
 }
 
-.buttom-container {
+.staffOrder-buttom-container {
   display: flex;
   justify-content: center;
 }
 
-.buttom-submit {
+.staffOrder-buttom-submit {
   margin-top: 20px;
   padding: 10px 20px;
   font-size: 16px;
@@ -91,7 +93,7 @@
   align-items: center;
 }
 
-.loading {
+.staffOrder-loading {
   text-align: center;
   padding: 30px;
   font-size: 20px;

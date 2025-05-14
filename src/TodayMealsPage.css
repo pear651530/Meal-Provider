@@ -13,9 +13,11 @@
 }
 
 .meal-list {
+  width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 最大 4 欄 */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
   gap: 20px;
+  justify-content: center;
 }
 
 .today-meal-card {

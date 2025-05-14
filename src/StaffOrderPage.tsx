@@ -84,61 +84,61 @@ function StaffOrderPage(): JSX.Element {
     setEmployeeId("");
   };
 
-  if (loading) return <p className="loading">載入中...</p>;
+  if (loading) return <p className="staffOrder-loading">載入中...</p>;
 
   return (
     <div>
       <Navbar/>
-      <div className="page-content">
-        <h2 className="page-title">🧾 店員點餐</h2>
+      <div className="staffOrder-page-content">
+        <h2 className="staffOrder-page-title">🧾 店員點餐</h2>
 
-        <div className="input-container">
-          <label className="input-id">
+        <div className="staffOrder-input-container">
+          <label className="staffOrder-input-id">
             員工 ID：
             <input
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
               placeholder="請輸入員工 ID"
-              className="input-id-borad"
+              className="staffOrder-input-id-borad"
             />
           </label>
         </div>
 
-        <div className="meal-list">
+        <div className="staffOrder-meal-list">
           {meals.map((meal) => {
             const selected = selectedMeal?.meal.id === meal.id;
             return (
-              <div key={meal.id} className="meal-card">
-                <img src={meal.image} alt={meal.name} className="meal-image"/>
-                <div className="meal-info">
-                  <h3>{meal.name} <span className="meal-price">{meal.price} 元</span></h3>
+              <div key={meal.id} className="staffOrder-meal-card">
+                <img src={meal.image} alt={meal.name} className="staffOrder-meal-image"/>
+                <div className="staffOrder-meal-info">
+                  <h3>{meal.name} <span className="staffOrder-meal-price">{meal.price} 元</span></h3>
                   <button onClick={() => handleSelectMeal(meal)}>
                     {selected ? "取消選擇" : "選擇"}
                   </button>
                 {selected && (
                   <div style={{ marginTop: "10px" }}>
-                    <div className="form-check">
+                    <div className="staffOrder-form-check">
                       <input
                         type="radio"
                         id="paymentCash"
-                        className="form-check-input"
+                        className="staffOrder-form-check-input"
                         checked={selectedMeal?.payment === "cash"}
                         onChange={() => handlePaymentChange("cash")}
                       />
-                      <label className="form-check-label" htmlFor="paymentCash">
+                      <label className="staffOrder-form-check-label" htmlFor="paymentCash">
                         現場支付
                       </label>
                     </div>
 
-                    <div className="form-check">
+                    <div className="staffOrder-form-check">
                       <input
                         type="radio"
                         id="paymentDebt"
-                        className="form-check-input"
+                        className="staffOrder-form-check-input"
                         checked={selectedMeal?.payment === "debt"}
                         onChange={() => handlePaymentChange("debt")}
                       />
-                      <label className="form-check-label" htmlFor="paymentDebt">
+                      <label className="staffOrder-form-check-label" htmlFor="paymentDebt">
                         賒帳
                       </label>
                     </div>
@@ -150,8 +150,8 @@ function StaffOrderPage(): JSX.Element {
           })}
         </div>
 
-        <div className="buttom-container">
-          <button onClick={handleSubmit} className="buttom-submit">
+        <div className="staffOrder-buttom-container">
+          <button onClick={handleSubmit} className="staffOrder-buttom-submit">
             ✅ 送出訂單
           </button>
         </div>
