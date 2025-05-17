@@ -88,7 +88,7 @@ function StaffOrderPage(): JSX.Element {
 
   return (
     <div>
-      <Navbar/>
+      <Navbar />
       <div className="staffOrder-page-content">
         <h2 className="staffOrder-page-title">🧾 店員點餐</h2>
 
@@ -109,41 +109,41 @@ function StaffOrderPage(): JSX.Element {
             const selected = selectedMeal?.meal.id === meal.id;
             return (
               <div key={meal.id} className="staffOrder-meal-card">
-                <img src={meal.image} alt={meal.name} className="staffOrder-meal-image"/>
+                <img src={meal.image} alt={meal.name} className="staffOrder-meal-image" />
                 <div className="staffOrder-meal-info">
                   <h3>{meal.name} <span className="staffOrder-meal-price">{meal.price} 元</span></h3>
                   <button onClick={() => handleSelectMeal(meal)}>
                     {selected ? "取消選擇" : "選擇"}
                   </button>
-                {selected && (
-                  <div style={{ marginTop: "10px" }}>
-                    <div className="staffOrder-form-check">
-                      <input
-                        type="radio"
-                        id="paymentCash"
-                        className="staffOrder-form-check-input"
-                        checked={selectedMeal?.payment === "cash"}
-                        onChange={() => handlePaymentChange("cash")}
-                      />
-                      <label className="staffOrder-form-check-label" htmlFor="paymentCash">
-                        現場支付
-                      </label>
-                    </div>
+                  {selected && (
+                    <div style={{ marginTop: "10px" }}>
+                      <div className="staffOrder-form-check">
+                        <input
+                          type="radio"
+                          id="paymentCash"
+                          className="staffOrder-form-check-input"
+                          checked={selectedMeal?.payment === "cash"}
+                          onChange={() => handlePaymentChange("cash")}
+                        />
+                        <label className="staffOrder-form-check-label" htmlFor="paymentCash">
+                          現場支付
+                        </label>
+                      </div>
 
-                    <div className="staffOrder-form-check">
-                      <input
-                        type="radio"
-                        id="paymentDebt"
-                        className="staffOrder-form-check-input"
-                        checked={selectedMeal?.payment === "debt"}
-                        onChange={() => handlePaymentChange("debt")}
-                      />
-                      <label className="staffOrder-form-check-label" htmlFor="paymentDebt">
-                        賒帳
-                      </label>
+                      <div className="staffOrder-form-check">
+                        <input
+                          type="radio"
+                          id="paymentDebt"
+                          className="staffOrder-form-check-input"
+                          checked={selectedMeal?.payment === "debt"}
+                          onChange={() => handlePaymentChange("debt")}
+                        />
+                        <label className="staffOrder-form-check-label" htmlFor="paymentDebt">
+                          賒帳
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 </div>
               </div>
             );

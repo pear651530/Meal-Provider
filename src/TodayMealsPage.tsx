@@ -101,7 +101,7 @@ function TodayMealsPage(): JSX.Element {
 
   return (
     <div>
-      <Navbar debtAmount={0}/>
+      <Navbar />
       <div className="page-content">
         <h2 className="page-title">🍽️ 今日餐點</h2>
         <div className="meal-list">
