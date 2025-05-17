@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "./NavBar";
+import Navbar from "../components/NavBar";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import $ from "jquery";

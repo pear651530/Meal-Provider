@@ -1,16 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LoginForm from "./LoginForm";
-import TodayMealsPage from "./TodayMealsPage";
-import RecordsPage from "./RecordsPage";
-import StaffOrderPage from "./StaffOrderPage";
-import MenuEditorPage from "./MenuEditorPage";
-import StaffDebtPage from "./StaffDebtPage";
-import Register from "./Register";
-import ForgotPassword from "./ForgotPassword";
-import "./NavBar.css";
+import LoginForm from "./pages/LoginForm";
+import TodayMealsPage from "./pages/TodayMealsPage";
+import RecordsPage from "./pages/RecordsPage";
+import StaffOrderPage from "./pages/StaffOrderPage";
+import MenuEditorPage from "./pages/MenuEditorPage";
+import StaffDebtPage from "./pages/StaffDebtPage";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
     return (
+        <AuthProvider>
         <>
             <Routes>
                 <Route path="/" element={<LoginForm />} />
@@ -24,6 +25,7 @@ function App() {
                 <Route path="/staff-debt" element={<StaffDebtPage />} />
             </Routes>
         </>
+        </AuthProvider>
     );
 }
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext"; // 匯入 context
 
 function LoginForm() {
     const [username, setUsername] = useState("");
@@ -7,12 +8,18 @@ function LoginForm() {
     const [message, setMessage] = useState("");
 
     const navigate = useNavigate();
+    const { login } = useAuth(); // 使用 context
 
     const handleLogin = () => {
-        if (username === "admin" && password === "1234") {
-            setMessage("登入成功！歡迎 admin");
+        // 模擬帳號密碼驗證成功
+        if (
+            (username === "admin" || username === "alan" || username === "bob") &&
+            password === "1234"
+        ) {
+            login(username); // 設定全域登入狀態
+            setMessage("登入成功！");
             setTimeout(() => {
-                navigate("/TodayMeals"); // 導向紀錄頁
+                navigate("/TodayMeals");
             }, 1000);
         } else {
             setMessage("帳號或密碼錯誤");

@@ -1,4 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "./NavBar.css";
 
 const baseLinkStyle = {
@@ -11,16 +12,24 @@ const baseLinkStyle = {
 
 function Navbar(): JSX.Element | null {
     const location = useLocation();
+    const navigate = useNavigate();
     const currentPath = location.pathname;
-    //console.log(currentPath);
+    const { username, isStaff, isManager, logout } = useAuth();
 
-    if (currentPath != "/") {
+    const handleLogout = () => {
+        logout();           // 清空狀態
+        navigate("/");      // 導回登入頁
+    };
+
+    if (currentPath !== "/") {
         const navLinks = [
             { label: "今日餐點", to: "/TodayMeals" },
             { label: "用餐紀錄", to: "/records" },
-            { label: "店員點餐", to: "/orders" },
-            { label: "員工賒帳紀錄", to: "/staff-debt" },
-            { label: "菜單調整", to: "/menuEditor" },
+            ...(isStaff ? [{ label: "店員點餐", to: "/orders" }] : []),
+            ...(isManager ? [
+                { label: "員工賒帳紀錄", to: "/staff-debt" },
+                { label: "菜單調整", to: "/menuEditor" },
+            ] : []),
         ];
 
         return (
@@ -28,10 +37,6 @@ function Navbar(): JSX.Element | null {
                 className="navbar"
                 style={{ background: "#333", padding: "10px" }}
             >
-                {/*<span style={{ color: "white", marginLeft: "15px", marginRight: "auto" }}>
-                    賒帳金額: ${debtAmount}
-                </span>*/}
-
                 {navLinks.map(({ label, to }) => (
                     <Link
                         key={to}
@@ -46,9 +51,12 @@ function Navbar(): JSX.Element | null {
                     </Link>
                 ))}
 
-                <Link to="/login" style={baseLinkStyle}>
+                <span
+                    onClick={handleLogout}
+                    style={{ ...baseLinkStyle, cursor: "pointer" }}
+                >
                     登出
-                </Link>
+                </span>
             </nav>
         );
     }

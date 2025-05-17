@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import Navbar from "./NavBar";
-import "./NavBar.css";
+import Navbar from "../components/NavBar";
 import "./MenuEditorPage.css";
 
 interface Comment {

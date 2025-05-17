@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import Navbar from "./NavBar";
+import Navbar from "../components/NavBar";
 import $ from "jquery";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.css";
-import "./NavBar.css";
 
 interface Record {
     id: number;
