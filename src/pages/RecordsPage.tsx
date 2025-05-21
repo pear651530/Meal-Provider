@@ -10,11 +10,16 @@ interface Record {
     meal: string;
     price: number;
     paid: boolean;
+    rating?: "like" | "dislike"; // 評價欄位
+    comment?: string; // 評價內容
 }
 
 function RecordsPage(): JSX.Element {
     const [records, setRecords] = useState<Record[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [activeRecordId, setActiveRecordId] = useState<number | null>(null);
+    const [showCommentModal, setShowCommentModal] = useState(false);
+    const [currentComment, setCurrentComment] = useState("");
 
     useEffect(() => {
         // 模擬載入資料
@@ -26,6 +31,7 @@ function RecordsPage(): JSX.Element {
                     meal: "咖哩飯",
                     price: 120,
                     paid: true,
+                    rating: "like",
                 },
                 {
                     id: 2,
@@ -40,6 +46,7 @@ function RecordsPage(): JSX.Element {
                     meal: "燒肉丼",
                     price: 150,
                     paid: true,
+                    rating: "dislike",
                 },
             ]);
             setLoading(false);
@@ -76,6 +83,12 @@ function RecordsPage(): JSX.Element {
                         className: "dt-center",
                         width: "30%",
                     }, // 付款狀況
+                    {
+                        orderable: false,
+                        targets: 4,
+                        className: "dt-center",
+                        width: "20%",
+                    }, // 我的評價
                 ],
                 order: [], // 禁用預設排序
             });
@@ -103,6 +116,74 @@ function RecordsPage(): JSX.Element {
 
     return (
         <div>
+            {showCommentModal && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100vw",
+                        height: "100vh",
+                        background: "rgba(0,0,0,0.3)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                    }}
+                    onClick={() => setShowCommentModal(false)}
+                >
+                    <div
+                        style={{
+                            background: "white",
+                            padding: "24px",
+                            borderRadius: "8px",
+                            minWidth: "300px",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3>填寫評論</h3>
+                        <textarea
+                            value={currentComment}
+                            onChange={(e) => setCurrentComment(e.target.value)}
+                            rows={4}
+                            style={{ width: "100%", marginBottom: "16px" }}
+                        />
+                        <div style={{ textAlign: "right" }}>
+                            <button
+                                onClick={() => setShowCommentModal(false)}
+                                style={{ marginRight: "8px" }}
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={() => {
+                                    // 儲存評論到對應的 record
+                                    if (activeRecordId !== null) {
+                                        setRecords((records) =>
+                                            records.map((r) =>
+                                                r.id === activeRecordId
+                                                    ? {
+                                                          ...r,
+                                                          comment:
+                                                              currentComment,
+                                                      }
+                                                    : r
+                                            )
+                                        );
+                                    }
+                                    setShowCommentModal(false);
+                                }}
+                                style={{
+                                    background: "#007bff",
+                                    color: "white",
+                                }}
+                            >
+                                儲存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <Navbar />
             <div
                 style={{
@@ -128,6 +209,7 @@ function RecordsPage(): JSX.Element {
                                 <th>餐點</th>
                                 <th>價格</th>
                                 <th>付款狀況</th>
+                                <th>我的評價</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -144,6 +226,208 @@ function RecordsPage(): JSX.Element {
                                         }}
                                     >
                                         {record.paid ? "已付款" : "未付款"}
+                                    </td>
+                                    <td>
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: "5px",
+                                                justifyContent: "center",
+                                                flexDirection: "column",
+                                                alignItems: "center",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: "5px",
+                                                    marginBottom: "5px",
+                                                }}
+                                            >
+                                                {record.rating ? (
+                                                    <>
+                                                        <button
+                                                            style={{
+                                                                backgroundColor:
+                                                                    record.rating ===
+                                                                    "like"
+                                                                        ? "#4CAF50"
+                                                                        : "#f1f1f1",
+                                                                color:
+                                                                    record.rating ===
+                                                                    "like"
+                                                                        ? "white"
+                                                                        : "black",
+                                                                border: "none",
+                                                                padding:
+                                                                    "5px 10px",
+                                                                borderRadius:
+                                                                    "5px",
+                                                            }}
+                                                            onClick={() => {
+                                                                const updatedRecords =
+                                                                    records.map(
+                                                                        (r) =>
+                                                                            r.id ===
+                                                                            record.id
+                                                                                ? {
+                                                                                      ...r,
+                                                                                      rating:
+                                                                                          r.rating ===
+                                                                                          "like"
+                                                                                              ? undefined
+                                                                                              : ("like" as "like"),
+                                                                                  }
+                                                                                : r
+                                                                    );
+                                                                setRecords(
+                                                                    updatedRecords
+                                                                );
+                                                            }}
+                                                            title="喜歡"
+                                                        >
+                                                            👍
+                                                        </button>
+                                                        <button
+                                                            style={{
+                                                                backgroundColor:
+                                                                    record.rating ===
+                                                                    "dislike"
+                                                                        ? "#f44336"
+                                                                        : "#f1f1f1",
+                                                                color:
+                                                                    record.rating ===
+                                                                    "dislike"
+                                                                        ? "white"
+                                                                        : "black",
+                                                                border: "none",
+                                                                padding:
+                                                                    "5px 10px",
+                                                                borderRadius:
+                                                                    "5px",
+                                                            }}
+                                                            onClick={() => {
+                                                                const updatedRecords =
+                                                                    records.map(
+                                                                        (r) =>
+                                                                            r.id ===
+                                                                            record.id
+                                                                                ? {
+                                                                                      ...r,
+                                                                                      rating:
+                                                                                          r.rating ===
+                                                                                          "dislike"
+                                                                                              ? undefined
+                                                                                              : ("dislike" as "dislike"),
+                                                                                  }
+                                                                                : r
+                                                                    );
+                                                                setRecords(
+                                                                    updatedRecords
+                                                                );
+                                                            }}
+                                                            title="不喜歡"
+                                                        >
+                                                            👎
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            style={{
+                                                                backgroundColor:
+                                                                    "#f1f1f1",
+                                                                color: "black",
+                                                                border: "none",
+                                                                padding:
+                                                                    "5px 10px",
+                                                                borderRadius:
+                                                                    "5px",
+                                                            }}
+                                                            onClick={() => {
+                                                                const updatedRecords =
+                                                                    records.map(
+                                                                        (r) =>
+                                                                            r.id ===
+                                                                            record.id
+                                                                                ? {
+                                                                                      ...r,
+                                                                                      rating: "like" as "like",
+                                                                                  }
+                                                                                : r
+                                                                    );
+                                                                setRecords(
+                                                                    updatedRecords
+                                                                );
+                                                            }}
+                                                            title="喜歡"
+                                                        >
+                                                            👍
+                                                        </button>
+                                                        <button
+                                                            style={{
+                                                                backgroundColor:
+                                                                    "#f1f1f1",
+                                                                color: "black",
+                                                                border: "none",
+                                                                padding:
+                                                                    "5px 10px",
+                                                                borderRadius:
+                                                                    "5px",
+                                                            }}
+                                                            onClick={() => {
+                                                                const updatedRecords =
+                                                                    records.map(
+                                                                        (r) =>
+                                                                            r.id ===
+                                                                            record.id
+                                                                                ? {
+                                                                                      ...r,
+                                                                                      rating: "dislike" as "dislike",
+                                                                                  }
+                                                                                : r
+                                                                    );
+                                                                setRecords(
+                                                                    updatedRecords
+                                                                );
+                                                            }}
+                                                            title="不喜歡"
+                                                        >
+                                                            👎
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <button
+                                                style={{
+                                                    backgroundColor:
+                                                        record.comment
+                                                            ? "#4CAF50"
+                                                            : "#007bff",
+                                                    color: "white",
+                                                    border: "none",
+                                                    padding: "5px 10px",
+                                                    borderRadius: "5px",
+                                                    fontSize: "12px",
+                                                    cursor: "pointer",
+                                                    width: "100%",
+                                                }}
+                                                onClick={() => {
+                                                    // Show comment modal for this record
+                                                    setActiveRecordId(
+                                                        record.id
+                                                    );
+                                                    setShowCommentModal(true);
+                                                    setCurrentComment(
+                                                        record.comment || ""
+                                                    );
+                                                }}
+                                            >
+                                                {record.comment
+                                                    ? "已填寫"
+                                                    : "填寫評論"}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
