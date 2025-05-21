@@ -22,11 +22,12 @@ class ReviewBase(BaseModel):
     comment: str
 
 class ReviewCreate(ReviewBase):
-    dining_record_id: int
+    pass
 
 class Review(ReviewBase):
     id: int
     user_id: int
+    dining_record_id: int
     created_at: datetime
 
     class Config:

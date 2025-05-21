@@ -12,13 +12,16 @@ def test_create_review(client, test_user_token, test_user, db):
     )
     db.add(dining_record)
     db.commit()
+    db.refresh(dining_record)  # Refresh to ensure we have the ID
+
+    # Store the ID before making the request
+    dining_record_id = dining_record.id
 
     response = client.post(
-        f"/dining-records/{dining_record.id}/reviews/",
+        f"/dining-records/{dining_record_id}/reviews/",
         json={
             "rating": 5,
-            "comment": "Great service!",
-            "dining_record_id": dining_record.id
+            "comment": "Great service!"
         },
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
@@ -27,15 +30,14 @@ def test_create_review(client, test_user_token, test_user, db):
     assert data["rating"] == 5
     assert data["comment"] == "Great service!"
     assert data["user_id"] == test_user.id
-    assert data["dining_record_id"] == dining_record.id
+    assert data["dining_record_id"] == dining_record_id
 
 def test_create_review_nonexistent_dining_record(client, test_user_token):
     response = client.post(
         "/dining-records/999/reviews/",
         json={
             "rating": 5,
-            "comment": "Great service!",
-            "dining_record_id": 999
+            "comment": "Great service!"
         },
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
@@ -47,8 +49,7 @@ def test_create_review_unauthorized(client):
         "/dining-records/1/reviews/",
         json={
             "rating": 5,
-            "comment": "Great service!",
-            "dining_record_id": 1
+            "comment": "Great service!"
         }
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED 

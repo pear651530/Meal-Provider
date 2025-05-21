@@ -12,7 +12,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     # email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    # full_name = Column(String)
+    full_name = Column(String)
     role = Column(String)  # employee or admin
     created_at = Column(DateTime, default=datetime.utcnow)
     

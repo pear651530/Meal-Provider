@@ -9,19 +9,19 @@ from passlib.context import CryptContext
 import models, schemas, database
 from database import get_db
 
-# 創建 FastAPI 應用
+# Create FastAPI app
 app = FastAPI(title="User Service API")
 
-# 密碼加密配置
+# Password encryption configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# JWT 配置
-SECRET_KEY = "mealprovider"  # 在生產環境中應該從環境變數獲取
+# JWT configuration
+SECRET_KEY = "mealprovider"  # Should be obtained from environment variables in production
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# 認證相關函數
+# Authentication related functions
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
