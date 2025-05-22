@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface AuthContextType {
     username: string | null;
@@ -8,7 +8,6 @@ interface AuthContextType {
     logout: () => void;
 }
 
-// 建立 context
 const AuthContext = createContext<AuthContextType>({
     username: null,
     isStaff: false,
@@ -17,7 +16,6 @@ const AuthContext = createContext<AuthContextType>({
     logout: () => {},
 });
 
-// 模擬的「使用者資料庫」
 const mockUsers = [
     { username: "admin", isStaff: true, isManager: true },
     { username: "alan", isStaff: true, isManager: false },
@@ -29,15 +27,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isStaff, setIsStaff] = useState(false);
     const [isManager, setIsManager] = useState(false);
 
-    const login = (name: string) => {
-        const user = mockUsers.find((u) => u.username === name);
+    // ✅ 每次刷新時從 localStorage 載入
+    useEffect(() => {
+        const savedUser = localStorage.getItem("auth_user");
+        if (savedUser) {
+            const { username, isStaff, isManager } = JSON.parse(savedUser);
+            setUsername(username);
+            setIsStaff(isStaff);
+            setIsManager(isManager);
+        }
+    }, []);
+
+    const login = (inputUsername: string) => {
+        const user = mockUsers.find(u => u.username === inputUsername);
         if (user) {
             setUsername(user.username);
             setIsStaff(user.isStaff);
             setIsManager(user.isManager);
+            localStorage.setItem("auth_user", JSON.stringify(user)); // ✅ 存入 localStorage
         } else {
-            // 查無此人則清空狀態（或你可以加入錯誤訊息）
-            logout();
+            alert("無此使用者");
         }
     };
 
@@ -45,12 +54,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUsername(null);
         setIsStaff(false);
         setIsManager(false);
+        localStorage.removeItem("auth_user"); // ✅ 清除 localStorage
     };
 
     return (
-        <AuthContext.Provider
-            value={{ username, isStaff, isManager, login, logout }}
-        >
+        <AuthContext.Provider value={{ username, isStaff, isManager, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

@@ -22,6 +22,7 @@ function Navbar(): JSX.Element | null {
     };
 
     if (currentPath !== "/") {
+        console.log(username + " " + isStaff + " " + isManager);
         const navLinks = [
             { label: "今日餐點", to: "/TodayMeals" },
             { label: "用餐紀錄", to: "/records" },
