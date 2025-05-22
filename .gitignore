@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 /backend_env
+
+# venv and alembic related
+**__pycache__**
+alembic.ini
+**alembic**
