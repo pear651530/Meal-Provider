@@ -14,7 +14,7 @@ function Navbar(): JSX.Element | null {
     const location = useLocation();
     const navigate = useNavigate();
     const currentPath = location.pathname;
-    const { username, isStaff, isManager, logout } = useAuth();
+    const { username, isStaff, isManager, DebtNeedNotice, logout } = useAuth();
 
     const handleLogout = () => {
         logout();           // 清空狀態
@@ -22,7 +22,7 @@ function Navbar(): JSX.Element | null {
     };
 
     if (currentPath !== "/") {
-        console.log(username + " " + isStaff + " " + isManager);
+        
         const navLinks = [
             { label: "今日餐點", to: "/TodayMeals" },
             { label: "用餐紀錄", to: "/records" },

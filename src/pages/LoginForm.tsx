@@ -16,10 +16,12 @@ function LoginForm() {
             (username === "admin" || username === "alan" || username === "bob") &&
             password === "1234"
         ) {
-            login(username); // 設定全域登入狀態
+            const user = login(username); // 設定全域登入狀態
             setMessage("登入成功！");
             setTimeout(() => {
                 navigate("/TodayMeals");
+                console.log(user?.DebtNeedNotice);
+                if(user?.DebtNeedNotice) alert("尚有餘款未繳清!");
             }, 1000);
         } else {
             setMessage("帳號或密碼錯誤");
