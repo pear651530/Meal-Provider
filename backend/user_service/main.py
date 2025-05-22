@@ -124,4 +124,79 @@ async def login_for_access_token(
         )
     
     access_token = create_access_token(data={"sub": user.username})
-    return {"access_token": access_token, "token_type": "bearer"} 
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/dining-records/{dining_record_id}", response_model=schemas.DiningRecord)
+def get_dining_record(
+    dining_record_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    db_dining_record = db.query(models.DiningRecord).filter(
+        models.DiningRecord.id == dining_record_id,
+        models.DiningRecord.user_id == current_user.id
+    ).first()
+    
+    if not db_dining_record:
+        raise HTTPException(status_code=404, detail="Dining record not found")
+    
+    return db_dining_record
+
+@app.get("/dining-records/{dining_record_id}/reviews/", response_model=schemas.Review)
+def get_dining_record_review(
+    dining_record_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # First verify the dining record belongs to the user
+    db_dining_record = db.query(models.DiningRecord).filter(
+        models.DiningRecord.id == dining_record_id,
+        models.DiningRecord.user_id == current_user.id
+    ).first()
+    
+    if not db_dining_record:
+        raise HTTPException(status_code=404, detail="Dining record not found")
+    
+    # Get the review for this dining record
+    db_review = db.query(models.Review).filter(
+        models.Review.dining_record_id == dining_record_id,
+        models.Review.user_id == current_user.id
+    ).first()
+    
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    return db_review
+
+@app.put("/dining-records/{dining_record_id}/reviews/", response_model=schemas.Review)
+def update_review(
+    dining_record_id: int,
+    review: schemas.ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # First verify the dining record belongs to the user
+    db_dining_record = db.query(models.DiningRecord).filter(
+        models.DiningRecord.id == dining_record_id,
+        models.DiningRecord.user_id == current_user.id
+    ).first()
+    
+    if not db_dining_record:
+        raise HTTPException(status_code=404, detail="Dining record not found")
+    
+    # Get the existing review
+    db_review = db.query(models.Review).filter(
+        models.Review.dining_record_id == dining_record_id,
+        models.Review.user_id == current_user.id
+    ).first()
+    
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    # Update the review
+    for key, value in review.dict().items():
+        setattr(db_review, key, value)
+    
+    db.commit()
+    db.refresh(db_review)
+    return db_review 
