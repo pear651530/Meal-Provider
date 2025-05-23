@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; // 匯入 context
+import LanguageSwitcher from "../components/LanguageSwitcher"; // 匯入語言切換器
+import { useTranslation } from "react-i18next";
 
 function LoginForm() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+    const { t, i18n } = useTranslation();
 
     const navigate = useNavigate();
     const { login } = useAuth(); // 使用 context
@@ -13,18 +16,20 @@ function LoginForm() {
     const handleLogin = () => {
         // 模擬帳號密碼驗證成功
         if (
-            (username === "admin" || username === "alan" || username === "bob") &&
+            (username === "admin" ||
+                username === "alan" ||
+                username === "bob") &&
             password === "1234"
         ) {
             const user = login(username); // 設定全域登入狀態
-            setMessage("登入成功！");
+            setMessage(t("登入成功！"));
             setTimeout(() => {
                 navigate("/TodayMeals");
                 console.log(user?.DebtNeedNotice);
-                if(user?.DebtNeedNotice) alert("尚有餘款未繳清!");
+                if (user?.DebtNeedNotice) alert(t("尚有餘款未繳清!"));
             }, 1000);
         } else {
-            setMessage("帳號或密碼錯誤");
+            setMessage(t("帳號或密碼錯誤"));
         }
     };
 
@@ -45,6 +50,17 @@ function LoginForm() {
                 fontFamily: "Arial",
             }}
         >
+            {/* 語言切換器 */}
+            <div
+                style={{
+                    position: "absolute",
+                    top: "20px",
+                    right: "20px",
+                    zIndex: 1000,
+                }}
+            >
+                <LanguageSwitcher />
+            </div>
             {/* 左側區域 */}
             <div
                 style={{
@@ -56,7 +72,7 @@ function LoginForm() {
                     backgroundColor: "#555555",
                 }}
             >
-                <p>此處保留未來添加資訊</p>
+                <p>{t("此處保留未來添加資訊")}</p>
             </div>
 
             {/* 右側登入區域 */}
@@ -85,7 +101,7 @@ function LoginForm() {
                             letterSpacing: "10px",
                         }}
                     >
-                        員工登入
+                        {t("員工登入")}
                     </h2>
                     <div style={{ marginBottom: "10px" }}></div>
                     <hr
@@ -98,7 +114,7 @@ function LoginForm() {
 
                     <input
                         type="text"
-                        placeholder="帳號"
+                        placeholder={t("帳號")}
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         style={{
@@ -115,7 +131,7 @@ function LoginForm() {
 
                     <input
                         type="password"
-                        placeholder="密碼"
+                        placeholder={t("密碼")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         style={{
@@ -143,7 +159,7 @@ function LoginForm() {
                             cursor: "pointer",
                         }}
                     >
-                        登入
+                        {t("登入")}
                     </button>
 
                     {message && (
@@ -173,7 +189,7 @@ function LoginForm() {
                                 cursor: "pointer",
                             }}
                         >
-                            註冊帳號
+                            {t("註冊帳號")}
                         </button>
                         <button
                             onClick={handleForgotPassword}
@@ -186,7 +202,7 @@ function LoginForm() {
                                 cursor: "pointer",
                             }}
                         >
-                            忘記密碼
+                            {t("忘記密碼")}
                         </button>
                     </div>
                 </div>

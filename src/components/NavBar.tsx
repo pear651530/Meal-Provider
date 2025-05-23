@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 import "./NavBar.css";
 
 const baseLinkStyle = {
@@ -15,22 +17,24 @@ function Navbar(): JSX.Element | null {
     const navigate = useNavigate();
     const currentPath = location.pathname;
     const { username, isStaff, isManager, DebtNeedNotice, logout } = useAuth();
+    const { t, i18n } = useTranslation();
 
     const handleLogout = () => {
-        logout();           // 清空狀態
-        navigate("/");      // 導回登入頁
+        logout(); // 清空狀態
+        navigate("/"); // 導回登入頁
     };
 
     if (currentPath !== "/") {
-        
         const navLinks = [
-            { label: "今日餐點", to: "/TodayMeals" },
-            { label: "用餐紀錄", to: "/records" },
-            ...(isStaff ? [{ label: "店員點餐", to: "/orders" }] : []),
-            ...(isManager ? [
-                { label: "員工賒帳紀錄", to: "/staff-debt" },
-                { label: "菜單調整", to: "/menuEditor" },
-            ] : []),
+            { label: t("今日餐點"), to: "/TodayMeals" },
+            { label: t("用餐紀錄"), to: "/records" },
+            ...(isStaff ? [{ label: t("店員點餐"), to: "/orders" }] : []),
+            ...(isManager
+                ? [
+                      { label: t("員工賒帳紀錄"), to: "/staff-debt" },
+                      { label: t("菜單調整"), to: "/menuEditor" },
+                  ]
+                : []),
         ];
 
         return (
@@ -52,11 +56,13 @@ function Navbar(): JSX.Element | null {
                     </Link>
                 ))}
 
+                <LanguageSwitcher />
+
                 <span
                     onClick={handleLogout}
                     style={{ ...baseLinkStyle, cursor: "pointer" }}
                 >
-                    登出
+                    {t("登出")}
                 </span>
             </nav>
         );

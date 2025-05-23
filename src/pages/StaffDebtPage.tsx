@@ -4,6 +4,7 @@ import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import $ from "jquery";
 import "./StaffDebtPage.css";
+import { useTranslation } from "react-i18next";
 
 interface StaffDebt {
     id: number;
@@ -12,6 +13,7 @@ interface StaffDebt {
 }
 
 const StaffDebtPage: React.FC = () => {
+    const { t, i18n } = useTranslation();
     const [staffDebts, setStaffDebts] = useState<StaffDebt[]>([]);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
@@ -77,14 +79,14 @@ const StaffDebtPage: React.FC = () => {
 
     // 預警選取員工功能
     const alertSelectedStaff = () => {
-        alert(`選取的員工 ID: ${selectedIds.join(", ")}`);
+        alert(t("選取的員工 ID: {{ids}}", { ids: selectedIds.join(", ") }));
     };
 
     return (
         <div style={{ width: "100vw", marginTop: "60px" }}>
             <Navbar />
             <div style={{ padding: "20px", width: "80vw", margin: "0 auto" }}>
-                <h1>員工賒帳狀況</h1>
+                <h1>{t("員工賒帳狀況")}</h1>
                 <table
                     id="staffDebtTable"
                     className="display"
@@ -108,12 +110,12 @@ const StaffDebtPage: React.FC = () => {
                                         }
                                         onChange={toggleSelectAll}
                                     />
-                                    <span>全選</span>
+                                    <span>{t("全選")}</span>
                                 </label>
                             </th>
-                            <th>員工ID</th>
-                            <th>員工名稱</th>
-                            <th>賒帳金額</th>
+                            <th>{t("員工ID")}</th>
+                            <th>{t("員工名稱")}</th>
+                            <th>{t("賒帳金額")}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -144,7 +146,7 @@ const StaffDebtPage: React.FC = () => {
                         cursor: "pointer",
                     }}
                 >
-                    預警選取員工
+                    {t("預警選取員工")}
                 </button>
             </div>
         </div>

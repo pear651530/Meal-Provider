@@ -3,6 +3,7 @@ import Navbar from "../components/NavBar";
 import $ from "jquery";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.css";
+import { useTranslation } from "react-i18next";
 
 interface Record {
     id: number;
@@ -15,6 +16,7 @@ interface Record {
 }
 
 function RecordsPage(): JSX.Element {
+    const { t, i18n } = useTranslation();
     const [records, setRecords] = useState<Record[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [activeRecordId, setActiveRecordId] = useState<number | null>(null);
@@ -109,10 +111,10 @@ function RecordsPage(): JSX.Element {
     const nextPaymentDeadline = "2025-05-31"; // 假設下一次結帳期限
 
     const handleImmediatePayment = () => {
-        alert("馬上結帳功能尚未實作！");
+        alert(t("馬上結帳功能尚未實作！"));
     };
 
-    if (loading) return <p>載入中...</p>;
+    if (loading) return <p>{t("載入中...")}</p>;
 
     return (
         <div>
@@ -141,7 +143,7 @@ function RecordsPage(): JSX.Element {
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h3>填寫評論</h3>
+                        <h3>{t("填寫評論")}</h3>
                         <textarea
                             value={currentComment}
                             onChange={(e) => setCurrentComment(e.target.value)}
@@ -153,7 +155,7 @@ function RecordsPage(): JSX.Element {
                                 onClick={() => setShowCommentModal(false)}
                                 style={{ marginRight: "8px" }}
                             >
-                                取消
+                                {t("取消")}
                             </button>
                             <button
                                 onClick={() => {
@@ -178,7 +180,7 @@ function RecordsPage(): JSX.Element {
                                     color: "white",
                                 }}
                             >
-                                儲存
+                                {t("儲存")}
                             </button>
                         </div>
                     </div>
@@ -197,7 +199,7 @@ function RecordsPage(): JSX.Element {
                 }}
             >
                 <div style={{ width: "80vw" }}>
-                    <h2>歷史用餐紀錄</h2>
+                    <h2>{t("歷史用餐紀錄")}</h2>
                     <table
                         id="recordsTable"
                         className="display"
@@ -205,11 +207,11 @@ function RecordsPage(): JSX.Element {
                     >
                         <thead>
                             <tr>
-                                <th>點餐日期</th>
-                                <th>餐點</th>
-                                <th>價格</th>
-                                <th>付款狀況</th>
-                                <th>我的評價</th>
+                                <th>{t("點餐日期")}</th>
+                                <th>{t("餐點")}</th>
+                                <th>{t("價格")}</th>
+                                <th>{t("付款狀況")}</th>
+                                <th>{t("我的評價")}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -217,7 +219,9 @@ function RecordsPage(): JSX.Element {
                                 <tr key={record.id}>
                                     <td>{record.date}</td>
                                     <td>{record.meal}</td>
-                                    <td>{record.price} 元</td>
+                                    <td>
+                                        {record.price} {t("元")}
+                                    </td>
                                     <td
                                         style={{
                                             color: record.paid
@@ -225,7 +229,9 @@ function RecordsPage(): JSX.Element {
                                                 : "red",
                                         }}
                                     >
-                                        {record.paid ? "已付款" : "未付款"}
+                                        {record.paid
+                                            ? t("已付款")
+                                            : t("未付款")}
                                     </td>
                                     <td>
                                         <div
@@ -284,7 +290,7 @@ function RecordsPage(): JSX.Element {
                                                                     updatedRecords
                                                                 );
                                                             }}
-                                                            title="喜歡"
+                                                            title={t("喜歡")}
                                                         >
                                                             👍
                                                         </button>
@@ -326,7 +332,7 @@ function RecordsPage(): JSX.Element {
                                                                     updatedRecords
                                                                 );
                                                             }}
-                                                            title="不喜歡"
+                                                            title={t("不喜歡")}
                                                         >
                                                             👎
                                                         </button>
@@ -360,7 +366,7 @@ function RecordsPage(): JSX.Element {
                                                                     updatedRecords
                                                                 );
                                                             }}
-                                                            title="喜歡"
+                                                            title={t("喜歡")}
                                                         >
                                                             👍
                                                         </button>
@@ -391,7 +397,7 @@ function RecordsPage(): JSX.Element {
                                                                     updatedRecords
                                                                 );
                                                             }}
-                                                            title="不喜歡"
+                                                            title={t("不喜歡")}
                                                         >
                                                             👎
                                                         </button>
@@ -424,8 +430,8 @@ function RecordsPage(): JSX.Element {
                                                 }}
                                             >
                                                 {record.comment
-                                                    ? "已填寫"
-                                                    : "填寫評論"}
+                                                    ? t("已填寫")
+                                                    : t("填寫評論")}
                                             </button>
                                         </div>
                                     </td>
@@ -451,8 +457,12 @@ function RecordsPage(): JSX.Element {
                     boxShadow: "0 -2px 5px rgba(0, 0, 0, 0.2)",
                 }}
             >
-                <span>賒帳總額：${debtAmount}</span>
-                <span>下一次結帳期限：{nextPaymentDeadline}</span>
+                <span>
+                    {t("賒帳總額")}：${debtAmount}
+                </span>
+                <span>
+                    {t("下一次結帳期限")}：{nextPaymentDeadline}
+                </span>
                 <button
                     onClick={handleImmediatePayment}
                     style={{
@@ -464,7 +474,7 @@ function RecordsPage(): JSX.Element {
                         cursor: "pointer",
                     }}
                 >
-                    馬上結帳
+                    {t("馬上結帳")}
                 </button>
             </div>
         </div>

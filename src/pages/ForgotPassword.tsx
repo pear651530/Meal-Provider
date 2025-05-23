@@ -1,21 +1,24 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next"; // 引入 i18n 的 hook
+import LanguageSwitcher from "../components/LanguageSwitcher"; // 匯入語言切換器
 
 function ForgotPassword() {
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");
+    const { t, i18n } = useTranslation();
 
     const navigate = useNavigate();
 
     const handleSendResetLink = () => {
         if (!email) {
-            setMessage("請輸入電子郵件地址");
+            setMessage(t("請輸入電子郵件地址"));
             return;
         }
 
         // 模擬發送重設密碼連結
-        setMessage(`重設密碼的連結已發送至 ${email}`);
-        console.log(`重設密碼連結已發送至: ${email}`); // 模擬發送
+        setMessage(t("重設密碼的連結已發送至 {{email}}", { email }));
+        console.log(t("重設密碼連結已發送至: {{email}}", { email })); // 模擬發送
     };
 
     return (
@@ -43,8 +46,21 @@ function ForgotPassword() {
                     fontSize: "16px",
                 }}
             >
-                返回登入頁
+                {t("返回登入頁")}
             </button>
+
+            {/* 語言切換器 */}
+            <div
+                style={{
+                    position: "absolute",
+                    top: "20px",
+                    right: "20px",
+                    zIndex: 1000,
+                }}
+            >
+                <LanguageSwitcher />
+            </div>
+
             <div
                 style={{
                     padding: "40px",
@@ -63,7 +79,7 @@ function ForgotPassword() {
                         marginBottom: "20px",
                     }}
                 >
-                    找回密碼
+                    {t("找回密碼")}
                 </h2>
 
                 <p
@@ -73,12 +89,14 @@ function ForgotPassword() {
                         marginBottom: "20px",
                     }}
                 >
-                    請輸入您的電子郵件地址，我們將發送一封包含重設密碼連結的郵件給您。
+                    {t(
+                        "請輸入您的電子郵件地址，我們將發送一封包含重設密碼連結的郵件給您。"
+                    )}
                 </p>
 
                 <input
                     type="email"
-                    placeholder="電子郵件"
+                    placeholder={t("電子郵件")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     style={{
@@ -103,7 +121,7 @@ function ForgotPassword() {
                         cursor: "pointer",
                     }}
                 >
-                    發送重設密碼連結
+                    {t("發送重設密碼連結")}
                 </button>
 
                 {message && (

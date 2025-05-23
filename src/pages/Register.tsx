@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useTranslation } from "react-i18next"; // 匯入 translation hook
 
 function Register() {
+    const { t } = useTranslation(); // 使用 translation hook
     const [employeeId, setEmployeeId] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -12,7 +15,7 @@ function Register() {
 
     const handleCheckEmployeeId = async () => {
         if (!employeeId) {
-            setMessage("請輸入員工號");
+            setMessage(t("請輸入員工號"));
             return;
         }
 
@@ -23,36 +26,36 @@ function Register() {
 
             if (data.exists) {
                 setIsValidEmployee(true);
-                setMessage("員工號驗證成功！");
+                setMessage(t("員工號驗證成功！"));
             } else {
-                setMessage("無效的員工號，請確認後重試");
+                setMessage(t("無效的員工號，請確認後重試"));
                 setIsValidEmployee(false);
             }
         } catch (error) {
-            console.error("驗證員工號時出錯:", error);
-            setMessage("驗證員工號時發生錯誤，請稍後再試");
+            console.error(t("驗證員工號時出錯:"), error);
+            setMessage(t("驗證員工號時發生錯誤，請稍後再試"));
         }
     };
 
     const handleRegister = () => {
         if (!employeeId || !password || !confirmPassword) {
-            setMessage("請填寫所有欄位");
+            setMessage(t("請填寫所有欄位"));
             return;
         }
 
         if (password !== confirmPassword) {
-            setMessage("密碼與確認密碼不一致");
+            setMessage(t("密碼與確認密碼不一致"));
             return;
         }
 
         if (!isValidEmployee) {
-            setMessage("請先驗證員工號");
+            setMessage(t("請先驗證員工號"));
             return;
         }
 
         // Here you would typically make an API call to register the user
 
-        setMessage("註冊成功！即將跳轉至登入頁面");
+        setMessage(t("註冊成功！即將跳轉至登入頁面"));
         setTimeout(() => {
             navigate("/Login");
         }, 2000);
@@ -85,8 +88,20 @@ function Register() {
                     fontSize: "16px",
                 }}
             >
-                返回登入頁
+                {t("返回登入頁")}
             </button>
+
+            {/* 語言切換器 */}
+            <div
+                style={{
+                    position: "absolute",
+                    top: "20px",
+                    right: "20px",
+                    zIndex: 1000,
+                }}
+            >
+                <LanguageSwitcher />
+            </div>
 
             <div
                 style={{
@@ -106,17 +121,17 @@ function Register() {
                         marginBottom: "20px",
                     }}
                 >
-                    註冊帳號
+                    {t("註冊帳號")}
                 </h2>
 
                 <div style={{ display: "flex", marginBottom: "20px" }}>
                     <input
                         type="text"
-                        placeholder="員工號"
+                        placeholder={t("員工號")}
                         value={employeeId}
                         onChange={(e) => setEmployeeId(e.target.value)}
                         style={{
-                            flex: 1.618,
+                            width: "65%",
                             padding: "12px",
                             border: "1px solid #444444",
                             borderRadius: "8px",
@@ -128,7 +143,7 @@ function Register() {
                     <button
                         onClick={handleCheckEmployeeId}
                         style={{
-                            flex: 1,
+                            width: "35%",
                             padding: "8px",
                             backgroundColor: "#ff8c00",
                             color: "#ffffff",
@@ -137,13 +152,13 @@ function Register() {
                             cursor: "pointer",
                         }}
                     >
-                        驗證員工號
+                        {t("驗證員工號")}
                     </button>
                 </div>
 
                 <input
                     type="password"
-                    placeholder="密碼"
+                    placeholder={t("密碼")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     style={{
@@ -160,7 +175,7 @@ function Register() {
 
                 <input
                     type="password"
-                    placeholder="確認密碼"
+                    placeholder={t("確認密碼")}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     style={{
@@ -187,14 +202,14 @@ function Register() {
                         cursor: "pointer",
                     }}
                 >
-                    註冊
+                    {t("註冊")}
                 </button>
 
                 {message && (
                     <p
                         style={{
                             marginTop: "15px",
-                            color: message.includes("成功")
+                            color: message.includes(t("成功"))
                                 ? "#6dff6d"
                                 : "#ff6b6b",
                             textAlign: "center",
