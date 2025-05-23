@@ -122,7 +122,7 @@ def client(db):
         try:
             yield db
         finally:
-            db.close()
+            pass  # Don't close the session here
     
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:

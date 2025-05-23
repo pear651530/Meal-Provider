@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List
@@ -20,6 +20,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 SECRET_KEY = "mealprovider"  # Should be obtained from environment variables in production
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Add API key configuration
+API_KEY = "mealprovider_admin_key"  # Should be obtained from environment variables in production
 
 # Authentication related functions
 def create_access_token(data: dict):
@@ -51,6 +54,24 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+def get_current_admin(
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized. Admin access required."
+        )
+    return current_user
+
+def verify_api_key(api_key: str = Header(..., alias="X-API-Key")):
+    if api_key != API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key"
+        )
+    return api_key
 
 # 用戶相關路由
 @app.post("/users/", response_model=schemas.User)
@@ -199,4 +220,34 @@ def update_review(
     
     db.commit()
     db.refresh(db_review)
-    return db_review 
+    return db_review
+
+@app.get("/users/unpaid", response_model=List[schemas.UnpaidUser])
+def get_unpaid_users(
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    # Query all users with unpaid dining records
+    unpaid_records = db.query(
+        models.User.id,
+        models.User.full_name,
+        models.DiningRecord.total_amount
+    ).join(
+        models.DiningRecord,
+        models.User.id == models.DiningRecord.user_id
+    ).filter(
+        models.DiningRecord.payment_status == "unpaid"
+    ).all()
+    
+    # Group by user and sum unpaid amounts
+    user_unpaid = {}
+    for user_id, full_name, amount in unpaid_records:
+        if user_id not in user_unpaid:
+            user_unpaid[user_id] = {
+                "user_id": user_id,
+                "user_name": full_name,
+                "unpaidAmount": 0
+            }
+        user_unpaid[user_id]["unpaidAmount"] += amount
+    
+    return list(user_unpaid.values()) 

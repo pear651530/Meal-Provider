@@ -55,4 +55,12 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    username: Optional[str] = None 
+    username: Optional[str] = None
+
+class UnpaidUser(BaseModel):
+    user_id: int
+    user_name: str
+    unpaidAmount: float
+
+    class Config:
+        from_attributes = True 

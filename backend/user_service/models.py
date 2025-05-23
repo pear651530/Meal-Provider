@@ -27,7 +27,7 @@ class DiningRecord(Base):
     order_id = Column(Integer)  # Reference to Order Service
     dining_date = Column(DateTime, default=datetime.utcnow)
     total_amount = Column(Float)
-    payment_status = Column(String)  # paid or credit
+    payment_status = Column(String)  # paid or unpaid
     
     user = relationship("User", back_populates="dining_records")
     reviews = relationship("Review", back_populates="dining_record")
@@ -38,7 +38,7 @@ class Review(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     dining_record_id = Column(Integer, ForeignKey("dining_records.id"))
-    rating = Column(Integer)  # 1-5
+    rating = Column(Integer)  # 1-5 ??
     comment = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     
