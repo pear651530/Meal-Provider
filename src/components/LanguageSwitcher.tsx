@@ -48,7 +48,10 @@ const LanguageSwitcher: React.FC = () => {
             </button>
 
             {isOpen && (
-                <div className="language-dropdown">
+                <div
+                    className="language-dropdown"
+                    data-testid="language-dropdown"
+                >
                     <div
                         onClick={() => changeLanguage("zh")}
                         className={`language-option ${
