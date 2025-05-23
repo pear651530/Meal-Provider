@@ -10,8 +10,16 @@ import { MemoryRouter } from "react-router-dom";
 const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
 
+// 定義options介面
+interface RenderOptions {
+    pathname?: string;
+    username?: string;
+    isStaff?: boolean;
+    isManager?: boolean;
+}
+
 // 創建一個自定義的渲染函數
-const renderNavBar = (options = {}) => {
+const renderNavBar = (options: RenderOptions = {}) => {
     const {
         pathname = "/TodayMeals",
         username = "user",

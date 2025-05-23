@@ -1,3 +1,4 @@
+import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -11,8 +12,7 @@ const baseLinkStyle = {
     fontWeight: "bold",
     opacity: 1,
 };
-
-function Navbar(): JSX.Element | null {
+function Navbar(): React.ReactElement | null {
     const location = useLocation();
     const navigate = useNavigate();
     const currentPath = location.pathname;

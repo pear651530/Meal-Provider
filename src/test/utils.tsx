@@ -11,7 +11,13 @@ i18n.init();
 
 export const renderWithProviders = (
     ui: React.ReactElement,
-    { route = "/", initialEntries = [route], ...renderOptions } = {}
+    {
+        route = "/",
+        initialEntries,
+        ...renderOptions
+    }: { route?: string; initialEntries?: string[]; [key: string]: any } = {
+        initialEntries: ["/"],
+    }
 ) => {
     const Wrapper = ({ children }: { children: ReactNode }) => (
         <I18nextProvider i18n={i18n}>

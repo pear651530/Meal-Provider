@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../components/NavBar";
 import $ from "jquery";
 import "datatables.net";
@@ -15,7 +15,7 @@ interface Record {
     comment?: string; // 評價內容
 }
 
-function RecordsPage(): JSX.Element {
+function RecordsPage(): React.ReactElement {
     const { t, i18n } = useTranslation();
     const [records, setRecords] = useState<Record[]>([]);
     const [loading, setLoading] = useState<boolean>(true);

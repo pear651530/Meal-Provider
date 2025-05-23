@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Navbar from "../components/NavBar";
 import "./TodayMealsPage.css";
@@ -17,7 +17,7 @@ interface TodayMeal {
     comments: Comment[];
 }
 
-function TodayMealsPage(): JSX.Element {
+function TodayMealsPage(): React.ReactElement {
     const { t, i18n } = useTranslation();
     const [meals, setMeals] = useState<TodayMeal[]>([]);
     const [loading, setLoading] = useState<boolean>(true);

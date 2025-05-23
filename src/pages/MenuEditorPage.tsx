@@ -17,7 +17,7 @@ interface TodayMeal {
     comments: Comment[];
 }
 
-function MenuEditorPage(): JSX.Element {
+function MenuEditorPage() {
     const { t, i18n } = useTranslation();
     const [meals, setMeals] = useState<TodayMeal[]>([]);
     const [draggingMealId, setDraggingMealId] = useState<number | null>(null);
