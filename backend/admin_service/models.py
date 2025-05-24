@@ -19,12 +19,13 @@ class MenuChange(Base):
     id = Column(Integer, primary_key=True, index=True)
     menu_item_id = Column(Integer, ForeignKey("menu_items.id"))  # Reference to Order Service MenuItem
     change_type = Column(String)  # "add", "update", "remove"
-    changed_fields = Column(JSON) # 記錄被修改的欄位及新值 {field_name: new_value}
+    # 修改這裡：將 changed_fields 拆分為 old_values 和 new_values
+    old_values = Column(JSON, nullable=True) # 記錄舊值
+    new_values = Column(JSON, nullable=False) # 記錄新值
     changed_by = Column(Integer)  # Reference to User Service admin
     changed_at = Column(DateTime, default=datetime.utcnow)
 
     menu_item = relationship("MenuItem", back_populates="menu_changes")
-
 class BillingNotification(Base):
     __tablename__ = "billing_notifications"
 

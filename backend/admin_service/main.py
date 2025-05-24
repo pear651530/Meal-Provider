@@ -26,7 +26,7 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 4. 將  models.Base.metadata.create_all(bind=engine)  放在這裡
-models.Base.metadata.create_all(bind=engine) # 加入這一行
+#models.Base.metadata.create_all(bind=engine) # 加入這一行
 
 
 
@@ -181,34 +181,54 @@ async def create_menu_change(
     if not menu_item:
         raise HTTPException(status_code=404, detail="Menu item not found")
 
-    changed_fields = {}
+    # 記錄實際被修改的欄位及其新值 (這將成為 models.MenuChange 的 new_values)
+    new_values_for_db = {}
+    # 記錄被修改欄位的舊值 (這將成為 models.MenuChange 的 old_values)
+    old_values_for_db = {}
 
     # 2. 記錄修改的欄位和新值
+    # 這裡的邏輯需要確保只有實際變化的值才被記錄
     if menu_change.new_values.get("name") is not None and menu_item.name != menu_change.new_values["name"]:
-        changed_fields["name"] = menu_change.new_values["name"]
+        old_values_for_db["name"] = menu_item.name
+        new_values_for_db["name"] = menu_change.new_values["name"]
         menu_item.name = menu_change.new_values["name"]
+    
     if menu_change.new_values.get("description") is not None and menu_item.description != menu_change.new_values["description"]:
-        changed_fields["description"] = menu_change.new_values["description"]
+        old_values_for_db["description"] = menu_item.description
+        new_values_for_db["description"] = menu_change.new_values["description"]
         menu_item.description = menu_change.new_values["description"]
+    
     if menu_change.new_values.get("price") is not None and menu_item.price != menu_change.new_values["price"]:
-        changed_fields["price"] = menu_change.new_values["price"]
+        old_values_for_db["price"] = menu_item.price
+        new_values_for_db["price"] = menu_change.new_values["price"]
         menu_item.price = menu_change.new_values["price"]
+    
     if menu_change.new_values.get("category") is not None and menu_item.category != menu_change.new_values["category"]:
-        changed_fields["category"] = menu_change.new_values["category"]
+        old_values_for_db["category"] = menu_item.category
+        new_values_for_db["category"] = menu_change.new_values["category"]
         menu_item.category = menu_change.new_values["category"]
 
+    # 如果沒有任何欄位被修改，拋出錯誤或回傳特定訊息
+    if not new_values_for_db:
+        raise HTTPException(status_code=400, detail="No changes detected for menu item.")
+    
+    # === 關鍵修改：在這裡提交 menu_item 的變更 ===
+    # 因為 menu_item 已經是從 session 中查詢出來的，所以通常不需要 db.add(menu_item)
+    # 但 db.commit() 和 db.refresh(menu_item) 是必須的。
+    db.commit() # 將對 menu_item 的修改寫入資料庫
+    db.refresh(menu_item) # 刷新 menu_item 物件，確保其屬性反映資料庫的最新狀態
+
     # 3. 翻譯菜品名稱和描述
-    if "name" in changed_fields or "description" in changed_fields:
+    # 僅在 name 或 description 實際改變時才進行翻譯
+    if "name" in new_values_for_db or "description" in new_values_for_db:
         languages = ["zh-TW", "en-US", "ja-JP"] # 支援的語言
         for lang in languages:
-            translated_name = translate_text(changed_fields.get("name", menu_item.name), lang)
-            translated_description = translate_text(changed_fields.get("description", menu_item.description), lang)
+            # 確保傳遞給 translate_text 的是最新值 (此時 menu_item 已經被刷新)
+            translated_name = translate_text(menu_item.name, lang)
+            translated_description = translate_text(menu_item.description, lang)
 
             # 4. 檢查是否已存在該語言的翻譯
-            translation = db.query(models.MenuItemTranslation).filter(
-                models.MenuItemTranslation.menu_items.any(id=menu_item.id),
-                models.MenuItemTranslation.language == lang
-            ).first()
+            translation = next((t for t in menu_item.translations if t.language == lang), None)
 
             if translation:
                 translation.name = translated_name
@@ -221,28 +241,41 @@ async def create_menu_change(
                     description=translated_description
                 )
                 menu_item.translations.append(new_translation)
+        
+        # 如果翻譯有變更，也需要提交翻譯的變更
+        db.commit() # 提交翻譯的變更
+        db.refresh(menu_item) # 刷新 menu_item 以確保其 translations 關聯是最新狀態
+
 
     # 6. 建立 MenuChange 紀錄
     db_menu_change = models.MenuChange(
         menu_item_id=menu_item.id,
         change_type=menu_change.change_type,
-        changed_fields=changed_fields,
+        old_values=old_values_for_db, # 填充 old_values
+        new_values=new_values_for_db, # 填充 new_values
         changed_by=admin["id"]
     )
     db.add(db_menu_change)
     db.commit()
     db.refresh(db_menu_change)
-
-    # 7. 更新訂單服務 (簡化，只傳 menu_item_id)
+    
+    # 7. 通知訂單服務
     try:
-        requests.put(
-            f"{ORDER_SERVICE_URL}/menu-items/{menu_change.menu_item_id}",
-            json={"menu_item_id": menu_change.menu_item_id} 
-        )
-    except requests.RequestException:
-        pass
+        order_service_url = f"http://order-service:8000/menu-items/{menu_item.id}"
+        updated_menu_item_data = {
+            "name": menu_item.name,
+            "description": menu_item.description,
+            "price": menu_item.price,
+            "category": menu_item.category,
+        }
+        response = requests.put(order_service_url, json=updated_menu_item_data)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to notify Order Service about menu change: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to notify Order Service: {e}")
 
     return db_menu_change
+
 
 # 取得特定語言的菜品名稱
 def get_menu_item_name_by_language(db: Session, menu_item_id: int, language: str) -> str:
