@@ -1,0 +1,136 @@
+.MenuEditor-loading {
+    text-align: center;
+    padding: 30px;
+    font-size: 20px;
+}
+
+.MenuEditor-page-content {
+    width: 100vw;
+    padding: 20px;
+    font-family: Arial;
+    margin-top: 60px;
+}
+
+.MenuEditor-page-title {
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #37474f;
+}
+
+.MenuEditor-dropzone {
+    min-height: 200px;
+    border: 2px dashed #ccc;
+    padding: 10px;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+}
+
+.MenuEditor-dropzone.today {
+    width: 80%;
+    background-color: #e3f2fd;
+    border-color: #90caf9;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.MenuEditor-dropzone.not-today {
+    width: 80%;
+    background-color: #f9f9f9;
+    border-color: #eeeeee;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.MenuEditor-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.MenuEditor-card {
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: white;
+    width: 200px;
+    border-radius: 12px;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.MenuEditor-card:hover {
+    transform: translateY(-3px);
+}
+
+.MenuEditor-card-image {
+    width: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-bottom: 12px;
+}
+
+.MenuEditor-card-h3 {
+    margin: 0px 0 16px;
+    color: #333;
+}
+
+.MenuEditor-buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.MenuEditor-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+}
+
+.MenuEditor-button.add .MenuEditor-button.confirm {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    align-items: center;
+}
+
+.MenuEditor-add-form {
+    margin: 20px auto 0 auto;
+    /* 上 20px，左右 auto */
+    padding: 15px;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+
+.MenuEditor-add-form input {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.MenuEditor-add-form button {
+    padding: 6px 12px;
+    font-weight: bold;
+    background-color: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.MenuEditor-add-form h4 {
+    font-weight: bold;
+    font-size: 20px;
+    font-weight: bold;
+    color: #37474f;
+}

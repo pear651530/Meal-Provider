@@ -1,0 +1,73 @@
+.page-content {
+  width: 100vw;
+  padding: 20px;
+  font-family: Arial;
+  margin-top: 60px;
+}
+
+.page-title {
+  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #37474f;
+}
+
+.meal-list {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
+  gap: 20px;
+  justify-content: center;
+}
+
+.today-meal-card {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  transition: transform 0.2s ease;
+}
+
+.today-meal-card:hover {
+  transform: translateY(-3px);
+}
+
+.meal-image {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-bottom: 12px;
+}
+
+.meal-info h3 {
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.meal-price {
+  font-size: 16px;
+  color: #888;
+  margin-left: 10px;
+}
+
+.comment-list {
+  padding-left: 18px;
+  list-style-type: disc;
+  color: #444;
+}
+
+.recommended {
+  color: #2e7d32;
+}
+
+.not-recommended {
+  color: #c62828;
+}
+
+.loading {
+  text-align: center;
+  padding: 30px;
+  font-size: 20px;
+}

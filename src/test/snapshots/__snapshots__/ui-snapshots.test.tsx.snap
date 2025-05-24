@@ -1,0 +1,205 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UI 快照測試 > LanguageSwitcher 組件快照測試 1`] = `
+<div>
+  <div
+    class="language-switcher"
+  >
+    <button
+      class="language-button"
+    >
+      <span
+        class="flag-emoji"
+      >
+        🇹🇼
+      </span>
+      <span>
+        繁體中文
+      </span>
+      <span
+        class="dropdown-icon"
+      >
+        ▼
+      </span>
+    </button>
+  </div>
+</div>
+`;
+
+exports[`UI 快照測試 > 一般用戶的 NavBar 組件快照測試 1`] = `
+<div>
+  <nav
+    class="navbar"
+    style="background: rgb(51, 51, 51); padding: 10px;"
+  >
+    <a
+      data-discover="true"
+      href="/TodayMeals"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 0.4; pointer-events: none;"
+    >
+      今日餐點
+    </a>
+    <a
+      data-discover="true"
+      href="/records"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; pointer-events: auto;"
+    >
+      用餐紀錄
+    </a>
+    <div
+      class="language-switcher"
+    >
+      <button
+        class="language-button"
+      >
+        <span
+          class="flag-emoji"
+        >
+          🇹🇼
+        </span>
+        <span>
+          繁體中文
+        </span>
+        <span
+          class="dropdown-icon"
+        >
+          ▼
+        </span>
+      </button>
+    </div>
+    <span
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; cursor: pointer;"
+    >
+      登出
+    </span>
+  </nav>
+</div>
+`;
+
+exports[`UI 快照測試 > 店員的 NavBar 組件快照測試 1`] = `
+<div>
+  <nav
+    class="navbar"
+    style="background: rgb(51, 51, 51); padding: 10px;"
+  >
+    <a
+      data-discover="true"
+      href="/TodayMeals"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 0.4; pointer-events: none;"
+    >
+      今日餐點
+    </a>
+    <a
+      data-discover="true"
+      href="/records"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; pointer-events: auto;"
+    >
+      用餐紀錄
+    </a>
+    <a
+      data-discover="true"
+      href="/orders"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; pointer-events: auto;"
+    >
+      店員點餐
+    </a>
+    <div
+      class="language-switcher"
+    >
+      <button
+        class="language-button"
+      >
+        <span
+          class="flag-emoji"
+        >
+          🇹🇼
+        </span>
+        <span>
+          繁體中文
+        </span>
+        <span
+          class="dropdown-icon"
+        >
+          ▼
+        </span>
+      </button>
+    </div>
+    <span
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; cursor: pointer;"
+    >
+      登出
+    </span>
+  </nav>
+</div>
+`;
+
+exports[`UI 快照測試 > 管理員的 NavBar 組件快照測試 1`] = `
+<div>
+  <nav
+    class="navbar"
+    style="background: rgb(51, 51, 51); padding: 10px;"
+  >
+    <a
+      data-discover="true"
+      href="/TodayMeals"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 0.4; pointer-events: none;"
+    >
+      今日餐點
+    </a>
+    <a
+      data-discover="true"
+      href="/records"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; pointer-events: auto;"
+    >
+      用餐紀錄
+    </a>
+    <a
+      data-discover="true"
+      href="/orders"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; pointer-events: auto;"
+    >
+      店員點餐
+    </a>
+    <a
+      data-discover="true"
+      href="/staff-debt"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; pointer-events: auto;"
+    >
+      員工賒帳紀錄
+    </a>
+    <a
+      data-discover="true"
+      href="/menuEditor"
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; pointer-events: auto;"
+    >
+      菜單調整
+    </a>
+    <div
+      class="language-switcher"
+    >
+      <button
+        class="language-button"
+      >
+        <span
+          class="flag-emoji"
+        >
+          🇹🇼
+        </span>
+        <span>
+          繁體中文
+        </span>
+        <span
+          class="dropdown-icon"
+        >
+          ▼
+        </span>
+      </button>
+    </div>
+    <span
+      style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold; opacity: 1; cursor: pointer;"
+    >
+      登出
+    </span>
+  </nav>
+</div>
+`;
