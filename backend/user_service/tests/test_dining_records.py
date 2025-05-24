@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from models import DiningRecord
+from ..models import DiningRecord
 from fastapi import status
 
 def test_get_dining_record(client, test_user_token, test_user, db):
@@ -12,6 +12,8 @@ def test_get_dining_record(client, test_user_token, test_user, db):
     dining_record = DiningRecord(
         user_id=test_user.id,
         order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item",
         total_amount=100.0,
         payment_status="paid"
     )
@@ -28,6 +30,8 @@ def test_get_dining_record(client, test_user_token, test_user, db):
     data = response.json()
     assert data["id"] == dining_record.id
     assert data["payment_status"] == "paid"
+    assert data["menu_item_id"] == 1
+    assert data["menu_item_name"] == "Test Menu Item"
     
     # Test getting non-existent dining record
     response = client.get(
@@ -45,6 +49,8 @@ def test_get_user_dining_records(client, test_user_token, test_user, db):
     dining_record = DiningRecord(
         user_id=test_user.id,
         order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item",
         total_amount=100.0,
         payment_status="paid"
     )
@@ -62,6 +68,8 @@ def test_get_user_dining_records(client, test_user_token, test_user, db):
     assert len(data) == 1
     assert data[0]["id"] == dining_record.id
     assert data[0]["payment_status"] == "paid"
+    assert data[0]["menu_item_id"] == 1
+    assert data[0]["menu_item_name"] == "Test Menu Item"
 
 def test_unauthorized_dining_record_access(client):
     # Test accessing dining record endpoints without authentication

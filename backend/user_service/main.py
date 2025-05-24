@@ -5,6 +5,7 @@ from typing import List
 import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
+from sqlalchemy import func
 
 from . import models, schemas, database
 from .database import get_db
@@ -83,7 +84,6 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user.password)
     db_user = models.User(
         username=user.username,
-        full_name=user.full_name,
         hashed_password=hashed_password,
         role="employee"
     )
@@ -230,7 +230,7 @@ def get_unpaid_users(
     # Query all users with unpaid dining records
     unpaid_records = db.query(
         models.User.id,
-        models.User.full_name,
+        models.User.username,
         models.DiningRecord.total_amount
     ).join(
         models.DiningRecord,
@@ -241,13 +241,45 @@ def get_unpaid_users(
     
     # Group by user and sum unpaid amounts
     user_unpaid = {}
-    for user_id, full_name, amount in unpaid_records:
+    for user_id, username, amount in unpaid_records:
         if user_id not in user_unpaid:
             user_unpaid[user_id] = {
                 "user_id": user_id,
-                "user_name": full_name,
+                "user_name": username,
                 "unpaidAmount": 0
             }
         user_unpaid[user_id]["unpaidAmount"] += amount
     
-    return list(user_unpaid.values()) 
+    return list(user_unpaid.values())
+
+@app.get("/ratings/{menu_item_id}", response_model=schemas.MenuItemRating)
+def get_menu_item_rating(
+    menu_item_id: int,
+    db: Session = Depends(get_db)
+):
+    # Get all dining records for this menu item
+    dining_records = db.query(models.DiningRecord).filter(
+        models.DiningRecord.menu_item_id == menu_item_id
+    ).all()
+    
+    if not dining_records:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    # Get all reviews for these dining records
+    dining_record_ids = [dr.id for dr in dining_records]
+    reviews = db.query(models.Review).filter(
+        models.Review.dining_record_id.in_(dining_record_ids)
+    ).all()
+    
+    # Calculate statistics
+    total_reviews = len(reviews)  # Total number of reviews
+    good_reviews = sum(1 for review in reviews if review.rating == "good")
+    good_ratio = good_reviews / total_reviews if total_reviews > 0 else 0
+    
+    return {
+        "menu_item_id": menu_item_id,
+        "menu_item_name": dining_records[0].menu_item_name,  # All records should have the same name
+        "total_reviews": total_reviews,
+        "good_reviews": good_reviews,
+        "good_ratio": good_ratio
+    } 

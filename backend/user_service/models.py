@@ -12,7 +12,6 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     # email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    full_name = Column(String)
     role = Column(String)  # employee or admin
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -25,6 +24,8 @@ class DiningRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     order_id = Column(Integer)  # Reference to Order Service
+    menu_item_id = Column(Integer)  # Reference to Menu Item in Admin Service
+    menu_item_name = Column(String)  # Name of the menu item
     dining_date = Column(DateTime, default=datetime.utcnow)
     total_amount = Column(Float)
     payment_status = Column(String)  # paid or unpaid
@@ -38,7 +39,7 @@ class Review(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     dining_record_id = Column(Integer, ForeignKey("dining_records.id"))
-    rating = Column(Integer)  # 1-5 ??
+    rating = Column(String)  # "good" or "bad"
     comment = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     

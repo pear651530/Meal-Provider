@@ -4,7 +4,6 @@ from typing import Optional, List
 
 class UserBase(BaseModel):
     username: str
-    full_name: str
 
 class UserCreate(UserBase):
     password: str
@@ -18,7 +17,7 @@ class User(UserBase):
         from_attributes = True
 
 class ReviewBase(BaseModel):
-    rating: int
+    rating: str  # "good" or "bad"
     comment: str
 
 class ReviewCreate(ReviewBase):
@@ -35,6 +34,8 @@ class Review(ReviewBase):
 
 class DiningRecordBase(BaseModel):
     order_id: int
+    menu_item_id: int
+    menu_item_name: str
     total_amount: float
     payment_status: str
 
@@ -61,6 +62,16 @@ class UnpaidUser(BaseModel):
     user_id: int
     user_name: str
     unpaidAmount: float
+
+    class Config:
+        from_attributes = True
+
+class MenuItemRating(BaseModel):
+    menu_item_id: int
+    menu_item_name: str
+    total_reviews: int  # Total number of reviews for this menu item
+    good_reviews: int
+    good_ratio: float  # Ratio of good reviews (good_reviews / total_reviews)
 
     class Config:
         from_attributes = True 

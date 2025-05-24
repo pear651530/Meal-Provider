@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from models import User, DiningRecord
+from ..models import User, DiningRecord
 from sqlalchemy.orm import Session
 
 # Test data
@@ -23,13 +23,11 @@ def test_get_unpaid_users_with_valid_api_key(client, db: Session):
     # Create test users
     user1 = User(
         username="user1",
-        full_name="Alice",
         hashed_password="password",
         role="employee"
     )
     user2 = User(
         username="user2",
-        full_name="Bob",
         hashed_password="password",
         role="employee"
     )
@@ -40,18 +38,24 @@ def test_get_unpaid_users_with_valid_api_key(client, db: Session):
     dining_record1 = DiningRecord(
         user_id=user1.id,
         order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Item 1",
         total_amount=120.0,
         payment_status="unpaid"
     )
     dining_record2 = DiningRecord(
         user_id=user1.id,
         order_id=2,
+        menu_item_id=1,
+        menu_item_name="Test Item 1",
         total_amount=120.0,
         payment_status="unpaid"
     )
     dining_record3 = DiningRecord(
         user_id=user2.id,
         order_id=3,
+        menu_item_id=1,
+        menu_item_name="Test Item 1",
         total_amount=360.0,
         payment_status="unpaid"
     )
@@ -70,15 +74,15 @@ def test_get_unpaid_users_with_valid_api_key(client, db: Session):
     # Verify response format and data
     assert len(data) == 2  # Two users with unpaid records
     
-    # Find Alice's record
-    alice_record = next(item for item in data if item["user_name"] == "Alice")
-    assert alice_record["user_id"] == user1.id
-    assert alice_record["unpaidAmount"] == 240.0  # 120 + 120
+    # Find user1's record
+    user1_record = next(item for item in data if item["user_id"] == user1.id)
+    assert user1_record["user_name"] == "user1"
+    assert user1_record["unpaidAmount"] == 240.0  # 120 + 120
     
-    # Find Bob's record
-    bob_record = next(item for item in data if item["user_name"] == "Bob")
-    assert bob_record["user_id"] == user2.id
-    assert bob_record["unpaidAmount"] == 360.0
+    # Find user2's record
+    user2_record = next(item for item in data if item["user_id"] == user2.id)
+    assert user2_record["user_name"] == "user2"
+    assert user2_record["unpaidAmount"] == 360.0
 
 def test_get_unpaid_users_with_invalid_api_key(client):
     response = client.get(
@@ -96,7 +100,6 @@ def test_get_unpaid_users_empty_list(client, db: Session):
     # Create a user with no unpaid records
     user = User(
         username="user3",
-        full_name="Charlie",
         hashed_password="password",
         role="employee"
     )
@@ -107,6 +110,8 @@ def test_get_unpaid_users_empty_list(client, db: Session):
     dining_record = DiningRecord(
         user_id=user.id,
         order_id=4,
+        menu_item_id=1,
+        menu_item_name="Test Item 1",
         total_amount=100.0,
         payment_status="paid"
     )

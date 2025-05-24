@@ -1,14 +1,16 @@
 import pytest
 from fastapi import status
-from models import Review
+from ..models import Review, DiningRecord
 from sqlalchemy.orm import Session
 
 def test_create_review(client, test_user_token, test_user, db):
     # Create a test dining record
-    from models import DiningRecord
+    from ..models import DiningRecord
     dining_record = DiningRecord(
         user_id=test_user.id,
         order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item",
         total_amount=100.0,
         payment_status="paid"
     )
@@ -22,14 +24,14 @@ def test_create_review(client, test_user_token, test_user, db):
     response = client.post(
         f"/dining-records/{dining_record_id}/reviews/",
         json={
-            "rating": 5,
+            "rating": "good",
             "comment": "Great service!"
         },
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["rating"] == 5
+    assert data["rating"] == "good"
     assert data["comment"] == "Great service!"
     assert data["user_id"] == test_user.id
     assert data["dining_record_id"] == dining_record_id
@@ -38,7 +40,7 @@ def test_create_review_nonexistent_dining_record(client, test_user_token):
     response = client.post(
         "/dining-records/999/reviews/",
         json={
-            "rating": 5,
+            "rating": "good",
             "comment": "Great service!"
         },
         headers={"Authorization": f"Bearer {test_user_token}"}
@@ -50,7 +52,7 @@ def test_create_review_unauthorized(client):
     response = client.post(
         "/dining-records/1/reviews/",
         json={
-            "rating": 5,
+            "rating": "good",
             "comment": "Great service!"
         }
     )
@@ -61,7 +63,7 @@ def test_review_instance(db: Session, test_dining_record_instance):
     review = Review(
         user_id=test_dining_record_instance.user_id,
         dining_record_id=test_dining_record_instance.id,
-        rating=4,
+        rating="good",
         comment="Great meal!"
     )
     db.add(review)
@@ -71,10 +73,12 @@ def test_review_instance(db: Session, test_dining_record_instance):
 
 def test_get_dining_record_review(client, test_user_token, test_user, db):
     # Create a test dining record and review
-    from models import DiningRecord
+    from ..models import DiningRecord
     dining_record = DiningRecord(
         user_id=test_user.id,
         order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item",
         total_amount=100.0,
         payment_status="paid"
     )
@@ -85,7 +89,7 @@ def test_get_dining_record_review(client, test_user_token, test_user, db):
     review = Review(
         user_id=test_user.id,
         dining_record_id=dining_record.id,
-        rating=4,
+        rating="good",
         comment="Great meal!"
     )
     db.add(review)
@@ -98,7 +102,7 @@ def test_get_dining_record_review(client, test_user_token, test_user, db):
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["rating"] == 4
+    assert data["rating"] == "good"
     assert data["comment"] == "Great meal!"
     
     # Test getting review for non-existent dining record
@@ -110,10 +114,12 @@ def test_get_dining_record_review(client, test_user_token, test_user, db):
 
 def test_update_review(client, test_user_token, test_user, db):
     # Create a test dining record and review
-    from models import DiningRecord
+    from ..models import DiningRecord
     dining_record = DiningRecord(
         user_id=test_user.id,
         order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item",
         total_amount=100.0,
         payment_status="paid"
     )
@@ -124,7 +130,7 @@ def test_update_review(client, test_user_token, test_user, db):
     review = Review(
         user_id=test_user.id,
         dining_record_id=dining_record.id,
-        rating=4,
+        rating="good",
         comment="Great meal!"
     )
     db.add(review)
@@ -132,7 +138,7 @@ def test_update_review(client, test_user_token, test_user, db):
 
     # Test updating the review
     updated_review = {
-        "rating": 5,
+        "rating": "bad",
         "comment": "Excellent meal!"
     }
     response = client.put(
@@ -142,7 +148,7 @@ def test_update_review(client, test_user_token, test_user, db):
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["rating"] == 5
+    assert data["rating"] == "bad"
     assert data["comment"] == "Excellent meal!"
     
     # Test updating non-existent review
@@ -160,12 +166,127 @@ def test_unauthorized_review_access(client):
     
     response = client.post(
         "/dining-records/1/reviews/",
-        json={"rating": 5, "comment": "test"}
+        json={"rating": "good", "comment": "test"}
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     response = client.put(
         "/dining-records/1/reviews/",
-        json={"rating": 5, "comment": "test"}
+        json={"rating": "good", "comment": "test"}
     )
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED 
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+def test_get_menu_item_rating(client, test_user_token, test_user, db):
+    # Clean up any existing reviews and dining records for this menu item
+    menu_item_id = 1
+    menu_item_name = "Test Menu Item"
+    
+    # Delete existing reviews and dining records
+    db.query(Review).delete()
+    db.query(DiningRecord).delete()
+    db.commit()
+    
+    # Create first dining record and review (good)
+    dining_record1 = DiningRecord(
+        user_id=test_user.id,
+        order_id=1,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=100.0,
+        payment_status="paid"
+    )
+    db.add(dining_record1)
+    db.commit()
+    db.refresh(dining_record1)
+    
+    review1 = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record1.id,
+        rating="good",
+        comment="Great meal!"
+    )
+    db.add(review1)
+    
+    # Create second dining record and review (good)
+    dining_record2 = DiningRecord(
+        user_id=test_user.id,
+        order_id=2,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=150.0,
+        payment_status="paid"
+    )
+    db.add(dining_record2)
+    db.commit()
+    db.refresh(dining_record2)
+    
+    review2 = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record2.id,
+        rating="good",
+        comment="Another great meal!"
+    )
+    db.add(review2)
+    
+    # Create third dining record and review (bad)
+    dining_record3 = DiningRecord(
+        user_id=test_user.id,
+        order_id=3,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=200.0,
+        payment_status="paid"
+    )
+    db.add(dining_record3)
+    db.commit()
+    db.refresh(dining_record3)
+    
+    review3 = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record3.id,
+        rating="bad",
+        comment="Not so good"
+    )
+    db.add(review3)
+    db.commit()
+    
+    # Test getting the rating statistics
+    response = client.get(f"/ratings/{menu_item_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["menu_item_id"] == menu_item_id
+    assert data["menu_item_name"] == menu_item_name
+    assert data["total_reviews"] == 3  # Three reviews
+    assert data["good_reviews"] == 2  # Two good reviews
+    assert data["good_ratio"] == 2/3  # Two out of three reviews are good
+    
+    # Test getting rating for non-existent menu item
+    response = client.get("/ratings/999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Menu item not found"
+
+def test_get_menu_item_rating_no_reviews(client, test_user_token, test_user, db):
+    # Create a dining record without any reviews
+    menu_item_id = 2
+    menu_item_name = "Another Menu Item"
+    
+    dining_record = DiningRecord(
+        user_id=test_user.id,
+        order_id=3,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=200.0,
+        payment_status="paid"
+    )
+    db.add(dining_record)
+    db.commit()
+    
+    # Test getting the rating statistics
+    response = client.get(f"/ratings/{menu_item_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["menu_item_id"] == menu_item_id
+    assert data["menu_item_name"] == menu_item_name
+    assert data["total_reviews"] == 0  # No reviews
+    assert data["good_reviews"] == 0
+    assert data["good_ratio"] == 0 

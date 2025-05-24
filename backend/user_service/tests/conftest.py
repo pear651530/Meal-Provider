@@ -6,9 +6,9 @@ from sqlalchemy.pool import StaticPool
 from passlib.context import CryptContext
 from datetime import datetime
 
-from main import app
-from models import Base, User, DiningRecord, Review
-from database import get_db
+from ..main import app
+from ..models import Base, User, DiningRecord, Review
+from ..database import get_db
 
 # Create test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -35,18 +35,19 @@ client = TestClient(app)
 # Test data
 test_user = {
     "username": "testuser",
-    "password": "testpass",
-    "full_name": "Test User"
+    "password": "testpass"
 }
 
 test_dining_record = {
     "date": datetime.now().date().isoformat(),
     "meal_type": "lunch",
-    "restaurant_id": 1
+    "restaurant_id": 1,
+    "menu_item_id": 1,
+    "menu_item_name": "Test Menu Item"
 }
 
 test_review = {
-    "rating": 4,
+    "rating": "good",
     "comment": "Great meal!"
 }
 
@@ -76,7 +77,6 @@ def test_user_instance(test_db):
     db = TestingSessionLocal()
     user = User(
         username=test_user["username"],
-        full_name=test_user["full_name"],
         hashed_password=test_user["password"],  # In real app, this would be hashed
         role="employee"
     )
@@ -92,7 +92,9 @@ def test_dining_record_instance(test_user_instance, test_db):
         user_id=test_user_instance.id,
         date=datetime.now().date(),
         meal_type="lunch",
-        restaurant_id=1
+        restaurant_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item"
     )
     db.add(dining_record)
     db.commit()
@@ -140,7 +142,6 @@ def test_user(db):
     hashed_password = pwd_context.hash("password123")
     user = User(
         username="testuser",
-        full_name="Test User",
         hashed_password=hashed_password,
         role="employee"
     )

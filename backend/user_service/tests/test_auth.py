@@ -6,14 +6,12 @@ def test_create_user(client):
         "/users/",
         json={
             "username": "newuser",
-            "full_name": "New User",
             "password": "newpassword123"
         }
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["username"] == "newuser"
-    assert data["full_name"] == "New User"
     assert "id" in data
     assert data["role"] == "employee"
 
@@ -22,7 +20,6 @@ def test_create_duplicate_user(client, test_user):
         "/users/",
         json={
             "username": "testuser",
-            "full_name": "Test User",
             "password": "password123"
         }
     )
