@@ -3,10 +3,10 @@ from datetime import datetime
 from typing import List, Optional
 
 class MenuItemBase(BaseModel):
-    name: str
-    description: str
+    ZH_name: str
+    EN_name: str
     price: float
-    category: str
+    URL: str
     is_available: bool = True
 
 class MenuItemCreate(MenuItemBase):

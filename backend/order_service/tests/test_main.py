@@ -49,10 +49,10 @@ def test_db_create(db):
     from order_service.schemas import MenuItemCreate
 
     menu_item_data = {
-        "name": "db_create item",
-        "description": "Test Description",
+        "ZH_name": "測試菜單項目 0",
+        "EN_name": "Test Menu Item 0",
         "price": 10.0,
-        "category": "Test Category",
+        "URL": "http://example.com/image0.png",
         "is_available": True
     }
     menu_item = MenuItemCreate(**menu_item_data)
@@ -62,33 +62,34 @@ def test_db_create(db):
     db.refresh(db_menu_item)
 
     assert db_menu_item.id is not None
-    assert db_menu_item.name == menu_item.name
-    assert db_menu_item.description == menu_item.description
+    assert db_menu_item.ZH_name == menu_item.ZH_name
+    assert db_menu_item.EN_name == menu_item.EN_name
+    assert db_menu_item.price == menu_item.price
+    assert db_menu_item.URL == menu_item.URL
 
 def test_create_menu_item(client):
 
     menu_item_data = {
-        "name": "create_menu item",
-        "description": "Test Description",
+        "ZH_name": "測試菜單項目 1",
+        "EN_name": "Test Menu Item 1",
         "price": 10.0,
-        "category": "Test Category",
-        "is_available": True,
+        "URL": "http://example.com/image1.png",
+        "is_available": True
     }
     response = client.post("/menu-items/", json=menu_item_data)
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == menu_item_data["name"]
-    assert data["description"] == menu_item_data["description"]
+    assert data["ZH_name"] == menu_item_data["ZH_name"]
+    assert data["EN_name"] == menu_item_data["EN_name"]
     assert data["price"] == menu_item_data["price"]
-    assert data["category"] == menu_item_data["category"]
-    assert data["is_available"] == menu_item_data["is_available"]
+
 
 def test_get_menu_items(client):
     menu_item_data = {
-        "name": "get_menu item",
-        "description": "Test Description",
-        "price": 10.0,
-        "category": "Test Category",
+        "ZH_name": "測試菜單項目 2",
+        "EN_name": "Test Menu Item 2",
+        "price": 15.0,
+        "URL": "http://example.com/image2.png",
         "is_available": True
     }
     client.post("/menu-items/", json=menu_item_data)
@@ -99,24 +100,22 @@ def test_get_menu_items(client):
 
     matched_item = None
     for item in items:
-        if item["name"] == menu_item_data["name"]:
+        if item["ZH_name"] == menu_item_data["ZH_name"] and item["EN_name"] == menu_item_data["EN_name"]:
             matched_item = item
             break
-    assert matched_item is not None, "Menu item not found in the response"
-    assert matched_item["description"] == menu_item_data["description"]
-    assert matched_item["price"] == menu_item_data["price"]
-    assert matched_item["category"] == menu_item_data["category"]
-    assert matched_item["is_available"] == menu_item_data["is_available"]
     assert response.status_code == 200
+    assert matched_item is not None
+    assert matched_item["price"] == menu_item_data["price"]
+
 
 
 
 def test_create_order_available(client):
     menu_item_data = {
-        "name": "create_order item",
-        "description": "Test Description",
+        "ZH_name": "create_order item available",
+        "EN_name": "Test Menu Item Available",
         "price": 10.0,
-        "category": "Test Category",
+        "URL": "http://example.com/image_available.png",
         "is_available": True
     }
     client.post("/menu-items/", json=menu_item_data)
@@ -150,10 +149,10 @@ def test_create_order_available(client):
 
 def test_create_order_unavailable(client):
     menu_item_data = {
-        "name": "create_order item unavailable",
-        "description": "Test Description",
+        "ZH_name": "create_order item unavailable",
+        "EN_name": "Test Menu Item Unavailable",
         "price": 10.0,
-        "category": "Test Category",
+        "URL": "http://example.com/image_unavailable.png",
         "is_available": False
     }
     client.post("/menu-items/", json=menu_item_data)

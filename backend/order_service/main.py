@@ -58,7 +58,7 @@ async def create_order(
         if not menu_item:
             raise HTTPException(status_code=404, detail=f"Menu item {item.menu_item_id} not found")
         if not menu_item.is_available:
-            raise HTTPException(status_code=400, detail=f"Menu item {menu_item.name} is not available")
+            raise HTTPException(status_code=400, detail=f"Menu item {menu_item.EN_name} is not available")
         total_amount += menu_item.price * item.quantity
 
     # 創建訂單
