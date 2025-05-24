@@ -6,8 +6,8 @@ import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
-import models, schemas, database
-from database import get_db
+from . import models, schemas, database
+from .database import get_db
 
 # Create FastAPI app
 app = FastAPI(title="User Service API")
