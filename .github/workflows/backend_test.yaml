@@ -25,9 +25,15 @@ jobs:
         pip install pytest
         pip install -r backend/requirements.txt
 
-    # Run tests
+    # Run order service tests
     - name: Run order_service tests
       run: |
         cd backend/order_service
         pytest tests/
+    
+    # Run user service tests
+    - name: Run user_service tests
+      run: |
+        cd backend/user_service
+        pytest tests/ -v
         
