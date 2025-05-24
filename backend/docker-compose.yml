@@ -1,6 +1,11 @@
 version: '3.8'
 
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
   user-service:
     build: 
       context: .
@@ -14,6 +19,7 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
     depends_on:
       - postgres-user
+      - rabbitmq
 
   order-service:
     build:
@@ -27,6 +33,7 @@ services:
     depends_on:
       - postgres-order
       - user-service
+      - rabbitmq
 
   admin-service:
     build:
@@ -42,6 +49,7 @@ services:
       - postgres-admin
       - user-service
       - order-service
+      - rabbitmq
 
   postgres-user:
     image: postgres:13
