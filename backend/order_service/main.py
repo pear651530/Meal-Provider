@@ -120,3 +120,7 @@ def update_order_status(
     order.status = status
     db.commit()
     return {"message": "Order status updated successfully"} 
+
+@app.get("/")
+def root():
+    return {"message": "Order service running"}

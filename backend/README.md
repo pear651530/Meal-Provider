@@ -58,8 +58,29 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+5. 測試：
+```bash
+pip install pytest
+cd {user/order/admin}_service
+pytest tests/
+```
+
+6. 建置：
+```bash
+docker compose up
+```
+
 ## API 文檔
 
 啟動服務後，可以訪問以下地址查看 API 文檔：
+### User Service
 - http://localhost:8000/docs (Swagger UI)
 - http://localhost:8000/redoc (ReDoc) 
+
+### Order Service
+- http://localhost:8001/docs (Swagger UI)
+- http://localhost:8001/redoc (ReDoc) 
+
+### Admin Service
+- http://localhost:8002/docs (Swagger UI)
+- http://localhost:8002/redoc (ReDoc) 
