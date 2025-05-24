@@ -1,0 +1,52 @@
+.language-switcher {
+  position: relative;
+  display: inline-block;
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+.language-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdown-icon {
+  font-size: 10px;
+}
+
+.language-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  z-index: 1000;
+  min-width: 120px;
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: white;
+}
+
+.language-option.active {
+  background-color: #ff8c00;
+}
+
+.flag-emoji img {
+  width: 20px !important;
+  height: 20px !important;
+  vertical-align: middle;
+}

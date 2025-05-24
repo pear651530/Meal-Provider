@@ -1,0 +1,102 @@
+.staffOrder-page-content {
+  width: 100vw;
+  padding: 20px;
+  font-family: Arial;
+  margin-top: 60px;
+}
+
+.staffOrder-page-title {
+  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #37474f;
+}
+
+.staffOrder-input-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.staffOrder-input-id {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.staffOrder-input-id-borad {
+  margin-left: 10px;
+  padding: 5px;
+}
+
+.staffOrder-meal-list {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
+  gap: 20px;
+  justify-content: center;
+}
+
+.staffOrder-meal-card {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  transition: transform 0.2s ease;
+}
+
+.staffOrder-meal-card:hover {
+  transform: translateY(-3px);
+}
+
+.staffOrder-meal-image {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-bottom: 12px;
+}
+
+.staffOrder-meal-info h3 {
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.staffOrder-meal-price {
+  font-size: 16px;
+  color: #888;
+  margin-left: 10px;
+}
+
+.staffOrder-form-check-input:checked {
+  background-color: #007bff;
+  /* 自訂顏色 */
+  border-color: #007bff;
+}
+
+.staffOrder-form-check-input {
+  border-radius: 50%;
+  width: 20px;
+  /* 調整大小 */
+  height: 20px;
+}
+
+.staffOrder-buttom-container {
+  display: flex;
+  justify-content: center;
+}
+
+.staffOrder-buttom-submit {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  align-items: center;
+}
+
+.staffOrder-loading {
+  text-align: center;
+  padding: 30px;
+  font-size: 20px;
+}
