@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+/backend_env
+
+# venv and alembic related
+**__pycache__**
+alembic.ini
+**alembic**

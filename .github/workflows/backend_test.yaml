@@ -1,0 +1,33 @@
+name: Backend Tests
+
+on:
+  push:
+    branches:
+      - backend-dev
+
+jobs:
+  Tests:
+    runs-on: ubuntu-latest
+    steps:
+    #Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    # Set up Python
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+
+    # Install dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+        pip install -r backend/requirements.txt
+
+    # Run tests
+    - name: Run order_service tests
+      run: |
+        cd backend/order_service
+        pytest tests/
+        

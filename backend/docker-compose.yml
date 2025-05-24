@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  user-service:
+    build: 
+      context: .
+      dockerfile: user_service/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-user:5432/meal_provider_user
+      - SECRET_KEY=your-secret-key-here
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    depends_on:
+      - postgres-user
+      - rabbitmq
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order_service/Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-order:5432/meal_provider_order
+      - USER_SERVICE_URL=http://user-service:8000
+    depends_on:
+      - postgres-order
+      - user-service
+      - rabbitmq
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: admin_service/Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-admin:5432/meal_provider_admin
+      - USER_SERVICE_URL=http://user-service:8000
+      - ORDER_SERVICE_URL=http://order-service:8000
+    depends_on:
+      - postgres-admin
+      - user-service
+      - order-service
+      - rabbitmq
+
+  postgres-user:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=meal_provider_user
+    volumes:
+      - postgres-user-data:/var/lib/postgresql/data
+
+  postgres-order:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=meal_provider_order
+    volumes:
+      - postgres-order-data:/var/lib/postgresql/data
+
+  postgres-admin:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=meal_provider_admin
+    volumes:
+      - postgres-admin-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-user-data:
+  postgres-order-data:
+  postgres-admin-data: 
