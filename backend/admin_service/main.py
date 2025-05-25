@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 from fastapi.security import OAuth2PasswordBearer # 引入 OAuth2PasswordBearer
-from .rabbitmq import send_notifications_to_users
+from .rabbitmq import send_notifications_to_users, send_menu_notification
 
 # 1. 定義資料庫 URL，確保這個 URL 和 docker-compose.yml 裡的一致
 SQLALCHEMY_DATABASE_URL = "postgresql://postgres:password@postgres-admin:5432/meal_provider_admin"  
@@ -162,10 +162,21 @@ async def create_menu_item(
 
     # 通知訂單服務 (簡化，只傳遞新增的菜品 ID)
     try:
-        requests.post(
-            f"{ORDER_SERVICE_URL}/menu-items/",
-            json={"menu_item_id": db_menu_item.id}
-        )
+        #requests.post(
+        #    f"{ORDER_SERVICE_URL}/menu-items/",
+        #    json={"menu_item_id": db_menu_item.id}
+        #)
+
+        # menu_item to dict
+        # send in rabbitmq with serialized schemas.MenuItemCreate
+        dictionalized_menu_item = {
+            "ZH_name": menu_item.ZH_name,
+            "EN_name": menu_item.EN_name,
+            "price": menu_item.price,
+            "URL": menu_item.URL,
+            "is_available": menu_item.is_available
+        }
+        send_menu_notification(dictionalized_menu_item)
     except requests.RequestException:
         pass # 處理連線錯誤
 
@@ -270,8 +281,10 @@ async def create_menu_change(
             "price": menu_item.price,
             "category": menu_item.category,
         }
-        response = requests.put(order_service_url, json=updated_menu_item_data)
-        response.raise_for_status()
+        # response = requests.put(order_service_url, json=updated_menu_item_data)
+        # response.raise_for_status()
+        # ==== Try to change to MQ ====
+        send_menu_notification()
     except requests.exceptions.RequestException as e:
         print(f"Failed to notify Order Service about menu change: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to notify Order Service: {e}")

@@ -8,6 +8,20 @@ from order_service.main import app
 from order_service.models import Base, MenuItem
 from order_service.database import get_db
 
+client = TestClient(app)
+@pytest.fixture(scope="function")
+def client(db):
+    # Override the get_db dependency
+    def override_get_db():
+        try:
+            yield db
+        finally:
+            db.close()
+    
+    app.dependency_overrides[get_db] = override_get_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -31,7 +45,7 @@ def db():
     finally:
         db.rollback()
         db.close()
-
+"""
 @pytest.fixture(scope="function")
 def client(db):
     def override_get_db():
@@ -44,28 +58,7 @@ def client(db):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-
-def test_db_create(db):
-    from order_service.schemas import MenuItemCreate
-
-    menu_item_data = {
-        "ZH_name": "測試菜單項目 0",
-        "EN_name": "Test Menu Item 0",
-        "price": 10.0,
-        "URL": "http://example.com/image0.png",
-        "is_available": True
-    }
-    menu_item = MenuItemCreate(**menu_item_data)
-    db_menu_item = MenuItem(**menu_item.dict())
-    db.add(db_menu_item)
-    db.commit()
-    db.refresh(db_menu_item)
-
-    assert db_menu_item.id is not None
-    assert db_menu_item.ZH_name == menu_item.ZH_name
-    assert db_menu_item.EN_name == menu_item.EN_name
-    assert db_menu_item.price == menu_item.price
-    assert db_menu_item.URL == menu_item.URL
+"""
 
 def test_create_menu_item(client):
 

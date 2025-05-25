@@ -32,13 +32,13 @@ class MenuItem(Base):
     __tablename__ = "menu_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    #name = Column(String)
+    # name = Column(String)
     ZH_name = Column(String)
     EN_name = Column(String)
     URL = Column(String)  # Image URL or other resource link
-    #description = Column(String)
+    # description = Column(String)
     price = Column(Float)
-    #category = Column(String)
+    # category = Column(String)
     is_available = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -7,10 +7,37 @@ from datetime import datetime
 from . import models, schemas, database
 from .database import get_db
 
+from .rabbitmq import *
+
 app = FastAPI(title="Order Service API")
 
 # 用戶服務URL（在k8s中會通過服務發現來獲取）
 USER_SERVICE_URL = "http://user-service:8000"
+
+consumer_thread = None
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    global consumer_thread
+    # Set up RabbitMQ
+    setup_rabbitmq()
+    # Get a database session
+    db = next(get_db())
+    try:
+        # Start the consumer thread
+        consumer_thread = start_consumer_thread(db)
+    finally:
+        db.close()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    global consumer_thread
+    if consumer_thread and consumer_thread.is_alive():
+        # The thread is a daemon thread, so it will be terminated when the main process exits
+        pass
+
 
 # 驗證用戶token的依賴
 async def verify_token(token: str, db: Session = Depends(get_db)):
