@@ -397,13 +397,40 @@ async def get_all_dining_records(
             f"{USER_SERVICE_URL}/dining-records/",
             headers={
                 "Authorization": f"Bearer {admin['token']}",
-                "X-API-Key": "mealprovider_admin_key"  # Add API key
+                "X-API-Key": "mealprovider_admin_key"
             }
         )
         if response.status_code != 200:
             raise HTTPException(
                 status_code=response.status_code,
                 detail="Failed to fetch dining records from user service"
+            )
+        return response.json()
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=503,
+            detail="User service unavailable"
+        )
+
+# Get all unpaid users
+@app.get("/users/unpaid", response_model=List[Dict])
+async def get_unpaid_users(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(verify_admin)
+):
+    try:
+        # Forward request to user service with API key
+        response = requests.get(
+            f"{USER_SERVICE_URL}/users/unpaid",
+            headers={
+                "Authorization": f"Bearer {admin['token']}",
+                "X-API-Key": "mealprovider_admin_key"
+            }
+        )
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="Failed to fetch unpaid users from user service"
             )
         return response.json()
     except requests.RequestException:
