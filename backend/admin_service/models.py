@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, JSON, Table
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, JSON, Table, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 from sqlalchemy.orm import relationship
@@ -53,10 +53,14 @@ class MenuItem(Base): # 這個 model 放在這裡，是因為它和 MenuChange �
 
     id = Column(Integer, primary_key=True, index=True)
     # 其他菜品欄位，例如 name, description, price, category 等
-    name = Column(String)
-    description = Column(String)
+    #name = Column(String)
+    ZH_name = Column(String)
+    EN_name = Column(String)
+    URL = Column(String)  # 圖片 URL
+    is_available = Column(Boolean, default=True)  # 是否可用
+    #description = Column(String)
     price = Column(Float)
-    category = Column(String)
+    #category = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)  # 新增創建時間
     updated_at = Column(DateTime, onupdate=datetime.utcnow) # 可選：新增更新時間
 
