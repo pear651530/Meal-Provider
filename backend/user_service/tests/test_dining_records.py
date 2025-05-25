@@ -77,4 +77,58 @@ def test_unauthorized_dining_record_access(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     response = client.get("/users/1/dining-records/")
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED 
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+def test_get_all_dining_records(client, test_admin_token, test_user_token, test_user, db):
+    # Clean up any existing dining records
+    db.query(DiningRecord).delete()
+    db.commit()
+
+    # Create multiple test dining records
+    dining_records = [
+        DiningRecord(
+            user_id=test_user.id,
+            order_id=1,
+            menu_item_id=1,
+            menu_item_name="Test Menu Item 1",
+            total_amount=100.0,
+            payment_status="paid"
+        ),
+        DiningRecord(
+            user_id=test_user.id,
+            order_id=2,
+            menu_item_id=2,
+            menu_item_name="Test Menu Item 2",
+            total_amount=200.0,
+            payment_status="unpaid"
+        )
+    ]
+    for record in dining_records:
+        db.add(record)
+    db.commit()
+
+    # Test getting all dining records as admin
+    response = client.get(
+        "/dining-records/",
+        headers={"Authorization": f"Bearer {test_admin_token}"}
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 2
+    
+    # Verify the first record
+    assert data[0]["menu_item_name"] == "Test Menu Item 1"
+    assert data[0]["payment_status"] == "paid"
+    assert data[0]["total_amount"] == 100.0
+    
+    # Verify the second record
+    assert data[1]["menu_item_name"] == "Test Menu Item 2"
+    assert data[1]["payment_status"] == "unpaid"
+    assert data[1]["total_amount"] == 200.0
+
+    # Test accessing without admin privileges
+    response = client.get(
+        "/dining-records/",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN 

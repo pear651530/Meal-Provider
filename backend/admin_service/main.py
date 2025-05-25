@@ -384,3 +384,24 @@ async def get_analytics(
     if report_type:
         query = query.filter(models.Analytics.report_type == report_type)
     return query.all()
+
+# Get all dining records
+@app.get("/dining-records/", response_model=List[Dict])
+async def get_all_dining_records(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(verify_admin)
+):
+    try:
+        # Forward request to user service
+        response = requests.get(f"{USER_SERVICE_URL}/dining-records/")
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="Failed to fetch dining records from user service"
+            )
+        return response.json()
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=503,
+            detail="User service unavailable"
+        )

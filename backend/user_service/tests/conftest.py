@@ -156,4 +156,31 @@ def test_user_token(client, test_user):
         "/token",
         data={"username": "testuser", "password": "password123"}
     )
+    return response.json()["access_token"]
+
+@pytest.fixture(scope="function")
+def test_admin(db):
+    # First check if admin exists
+    existing_admin = db.query(User).filter(User.username == "admin").first()
+    if existing_admin:
+        return existing_admin
+        
+    # If not, create new admin
+    hashed_password = pwd_context.hash("admin123")
+    admin = User(
+        username="admin",
+        hashed_password=hashed_password,
+        role="admin"
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin
+
+@pytest.fixture(scope="function")
+def test_admin_token(client, test_admin):
+    response = client.post(
+        "/token",
+        data={"username": "admin", "password": "admin123"}
+    )
     return response.json()["access_token"] 

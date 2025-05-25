@@ -282,4 +282,12 @@ def get_menu_item_rating(
         "total_reviews": total_reviews,
         "good_reviews": good_reviews,
         "good_ratio": good_ratio
-    } 
+    }
+
+# Get all dining records (admin only)
+@app.get("/dining-records/", response_model=List[schemas.DiningRecord])
+def get_all_dining_records(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_admin)
+):
+    return db.query(models.DiningRecord).all() 
