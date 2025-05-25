@@ -74,4 +74,15 @@ class MenuItemRating(BaseModel):
     good_ratio: float  # Ratio of good reviews (good_reviews / total_reviews)
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class Notification(BaseModel):
+    id: int
+    user_id: int
+    message: str
+    notification_type: str
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        orm_mode = True 

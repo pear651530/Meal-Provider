@@ -6,6 +6,13 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
   user-service:
     build: 
       context: .
@@ -18,8 +25,10 @@ services:
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
     depends_on:
-      - postgres-user
-      - rabbitmq
+      postgres-user:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   order-service:
     build:

@@ -4,7 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from passlib.context import CryptContext
-from datetime import datetime
+from datetime import datetime, timedelta
+import jwt
 
 from ..main import app
 from ..models import Base, User, DiningRecord, Review
@@ -33,17 +34,17 @@ app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 # Test data
-test_user = {
+test_user_data = {
     "username": "testuser",
     "password": "testpass"
 }
 
 test_dining_record = {
-    "date": datetime.now().date().isoformat(),
-    "meal_type": "lunch",
-    "restaurant_id": 1,
+    "order_id": 1,
     "menu_item_id": 1,
-    "menu_item_name": "Test Menu Item"
+    "menu_item_name": "Test Menu Item",
+    "total_amount": 100.0,
+    "payment_status": "paid"
 }
 
 test_review = {
@@ -60,13 +61,13 @@ def test_db():
 @pytest.fixture
 def auth_headers():
     # Create test user
-    response = client.post("/users/", json=test_user)
+    response = client.post("/users/", json=test_user_data)
     assert response.status_code == 200
     
     # Login to get token
     response = client.post("/token", data={
-        "username": test_user["username"],
-        "password": test_user["password"]
+        "username": test_user_data["username"],
+        "password": test_user_data["password"]
     })
     assert response.status_code == 200
     token = response.json()["access_token"]
@@ -75,9 +76,12 @@ def auth_headers():
 @pytest.fixture
 def test_user_instance(test_db):
     db = TestingSessionLocal()
+    user = db.query(User).filter(User.username == test_user_data["username"]).first()
+    if user:
+        return user
     user = User(
-        username=test_user["username"],
-        hashed_password=test_user["password"],  # In real app, this would be hashed
+        username=test_user_data["username"],
+        hashed_password=test_user_data["password"],  # In real app, this would be hashed
         role="employee"
     )
     db.add(user)
@@ -90,11 +94,11 @@ def test_dining_record_instance(test_user_instance, test_db):
     db = TestingSessionLocal()
     dining_record = DiningRecord(
         user_id=test_user_instance.id,
-        date=datetime.now().date(),
-        meal_type="lunch",
-        restaurant_id=1,
-        menu_item_id=1,
-        menu_item_name="Test Menu Item"
+        order_id=test_dining_record["order_id"],
+        menu_item_id=test_dining_record["menu_item_id"],
+        menu_item_name=test_dining_record["menu_item_name"],
+        total_amount=test_dining_record["total_amount"],
+        payment_status=test_dining_record["payment_status"]
     )
     db.add(dining_record)
     db.commit()
@@ -110,25 +114,32 @@ def create_tables():
 
 @pytest.fixture(scope="function")
 def db():
-    # Create a new session for each test
+    # Create the test database
+    Base.metadata.create_all(bind=engine)
+    
+    # Create a new database session for the test
     db = TestingSessionLocal()
     try:
         yield db
     finally:
-        db.rollback()  # Rollback any pending changes
         db.close()
+        # Drop all tables after the test
+        Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture(scope="function")
 def client(db):
+    # Override the get_db dependency
     def override_get_db():
         try:
             yield db
         finally:
-            pass  # Don't close the session here
+            db.close()
     
     app.dependency_overrides[get_db] = override_get_db
+    
     with TestClient(app) as test_client:
         yield test_client
+    
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="function")
@@ -151,12 +162,13 @@ def test_user(db):
     return user
 
 @pytest.fixture(scope="function")
-def test_user_token(client, test_user):
-    response = client.post(
-        "/token",
-        data={"username": "testuser", "password": "password123"}
-    )
-    return response.json()["access_token"]
+def test_user_token(test_user):
+    # Create a test JWT token
+    token_data = {
+        "sub": test_user.username,
+        "exp": datetime.utcnow() + timedelta(minutes=30)
+    }
+    return jwt.encode(token_data, "mealprovider", algorithm="HS256")
 
 @pytest.fixture(scope="function")
 def test_admin(db):
@@ -178,9 +190,10 @@ def test_admin(db):
     return admin
 
 @pytest.fixture(scope="function")
-def test_admin_token(client, test_admin):
-    response = client.post(
-        "/token",
-        data={"username": "admin", "password": "admin123"}
-    )
-    return response.json()["access_token"] 
+def test_admin_token(test_admin):
+    # Create a test admin JWT token
+    token_data = {
+        "sub": test_admin.username,
+        "exp": datetime.utcnow() + timedelta(minutes=30)
+    }
+    return jwt.encode(token_data, "mealprovider", algorithm="HS256") 

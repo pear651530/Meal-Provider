@@ -8,13 +8,15 @@ from datetime import datetime, timedelta
 from . import models, schemas, database
 from .database import get_db
 from googletrans import Translator # 引入 googletrans
+import pika
+import json
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
 from fastapi.security import OAuth2PasswordBearer # 引入 OAuth2PasswordBearer
-# ... (其他 import 保持不變)
+from .rabbitmq import send_notifications_to_users
 
 # 1. 定義資料庫 URL，確保這個 URL 和 docker-compose.yml 裡的一致
 SQLALCHEMY_DATABASE_URL = "postgresql://postgres:password@postgres-admin:5432/meal_provider_admin"  
@@ -437,4 +439,46 @@ async def get_unpaid_users(
         raise HTTPException(
             status_code=503,
             detail="User service unavailable"
+        )
+
+# Send billing notifications
+@app.post("/billing-notifications/send", response_model=Dict)
+async def send_billing_notifications(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(verify_admin)
+):
+    try:
+        # Get unpaid users from user service
+        response = requests.get(
+            f"{USER_SERVICE_URL}/users/unpaid",
+            headers={
+                "Authorization": f"Bearer {admin['token']}",
+                "X-API-Key": "mealprovider_admin_key"
+            }
+        )
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="Failed to fetch unpaid users from user service"
+            )
+        
+        unpaid_users = response.json()
+        
+        # Send notifications using the RabbitMQ module
+        notified_count = send_notifications_to_users(unpaid_users)
+        
+        return {
+            "message": f"Billing notifications sent to {notified_count} users",
+            "notified_users": notified_count
+        }
+        
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=503,
+            detail="User service unavailable"
+        )
+    except pika.exceptions.AMQPConnectionError:
+        raise HTTPException(
+            status_code=503,
+            detail="Message broker unavailable"
         )

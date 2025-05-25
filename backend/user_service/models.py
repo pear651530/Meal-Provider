@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -12,11 +12,12 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     # email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    role = Column(String)  # employee or admin
+    role = Column(String, default="employee")
     created_at = Column(DateTime, default=datetime.utcnow)
     
     dining_records = relationship("DiningRecord", back_populates="user")
     reviews = relationship("Review", back_populates="user")
+    notifications = relationship("Notification", back_populates="user")
 
 class DiningRecord(Base):
     __tablename__ = "dining_records"
@@ -31,7 +32,7 @@ class DiningRecord(Base):
     payment_status = Column(String)  # paid or unpaid
     
     user = relationship("User", back_populates="dining_records")
-    reviews = relationship("Review", back_populates="dining_record")
+    review = relationship("Review", back_populates="dining_record", uselist=False)
 
 class Review(Base):
     __tablename__ = "reviews"
@@ -44,4 +45,16 @@ class Review(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="reviews")
-    dining_record = relationship("DiningRecord", back_populates="reviews") 
+    dining_record = relationship("DiningRecord", back_populates="review")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    message = Column(String)
+    notification_type = Column(String)  # e.g., "billing", "system", etc.
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="notifications") 

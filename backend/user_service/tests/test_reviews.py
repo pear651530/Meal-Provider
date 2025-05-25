@@ -1,62 +1,92 @@
 import pytest
 from fastapi import status
+from fastapi.testclient import TestClient
 from ..models import Review, DiningRecord
 from sqlalchemy.orm import Session
+from datetime import datetime
 
-def test_create_review(client, test_user_token, test_user, db):
-    # Create a test dining record
-    from ..models import DiningRecord
-    dining_record = DiningRecord(
-        user_id=test_user.id,
-        order_id=1,
-        menu_item_id=1,
-        menu_item_name="Test Menu Item",
-        total_amount=100.0,
-        payment_status="paid"
-    )
-    db.add(dining_record)
-    db.commit()
-    db.refresh(dining_record)  # Refresh to ensure we have the ID
+def test_create_review(client: TestClient, test_user_token, test_dining_record_instance, db):
+    # Create review data
+    review_data = {
+        "rating": "good",
+        "comment": "Great meal!"
+    }
 
-    # Store the ID before making the request
-    dining_record_id = dining_record.id
-
+    # Make request to create review
     response = client.post(
-        f"/dining-records/{dining_record_id}/reviews/",
-        json={
-            "rating": "good",
-            "comment": "Great service!"
-        },
+        f"/dining-records/{test_dining_record_instance.id}/reviews",
+        json=review_data,
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
-    assert response.status_code == status.HTTP_200_OK
+
+    # Verify response
+    assert response.status_code == 200
     data = response.json()
-    assert data["rating"] == "good"
-    assert data["comment"] == "Great service!"
-    assert data["user_id"] == test_user.id
-    assert data["dining_record_id"] == dining_record_id
+    assert data["rating"] == review_data["rating"]
+    assert data["comment"] == review_data["comment"]
+    assert data["user_id"] == test_dining_record_instance.user_id
+    assert data["dining_record_id"] == test_dining_record_instance.id
 
-def test_create_review_nonexistent_dining_record(client, test_user_token):
+    # Verify review was created in database
+    db_review = db.query(Review).filter(
+        Review.dining_record_id == test_dining_record_instance.id
+    ).first()
+    assert db_review is not None
+    assert db_review.rating == review_data["rating"]
+    assert db_review.comment == review_data["comment"]
+
+def test_create_review_nonexistent_dining_record(client: TestClient, test_user_token):
+    # Create review data
+    review_data = {
+        "rating": "good",
+        "comment": "Great meal!"
+    }
+
+    # Make request with non-existent dining record ID
     response = client.post(
-        "/dining-records/999/reviews/",
-        json={
-            "rating": "good",
-            "comment": "Great service!"
-        },
+        "/dining-records/999/reviews",
+        json=review_data,
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    # Verify response
+    assert response.status_code == 404
     assert response.json()["detail"] == "Dining record not found"
 
-def test_create_review_unauthorized(client):
+def test_create_review_unauthorized(client: TestClient, test_dining_record_instance):
+    # Create review data
+    review_data = {
+        "rating": "good",
+        "comment": "Great meal!"
+    }
+
+    # Make request without token
     response = client.post(
-        "/dining-records/1/reviews/",
-        json={
-            "rating": "good",
-            "comment": "Great service!"
-        }
+        f"/dining-records/{test_dining_record_instance.id}/reviews",
+        json=review_data
     )
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # Verify response
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+def test_create_review_wrong_user(client: TestClient, test_dining_record_instance, test_admin_token):
+    # Create review data
+    review_data = {
+        "rating": "good",
+        "comment": "Great meal!"
+    }
+
+    # Make request with different user's token
+    response = client.post(
+        f"/dining-records/{test_dining_record_instance.id}/reviews",
+        json=review_data,
+        headers={"Authorization": f"Bearer {test_admin_token}"}
+    )
+
+    # Verify response
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Not authorized to review this dining record"
 
 @pytest.fixture
 def test_review_instance(db: Session, test_dining_record_instance):
@@ -71,9 +101,8 @@ def test_review_instance(db: Session, test_dining_record_instance):
     db.refresh(review)
     return review
 
-def test_get_dining_record_review(client, test_user_token, test_user, db):
+def test_get_dining_record_review(client: TestClient, test_user_token, test_user, db):
     # Create a test dining record and review
-    from ..models import DiningRecord
     dining_record = DiningRecord(
         user_id=test_user.id,
         order_id=1,
@@ -97,24 +126,24 @@ def test_get_dining_record_review(client, test_user_token, test_user, db):
 
     # Test getting the review
     response = client.get(
-        f"/dining-records/{dining_record.id}/reviews/",
+        f"/dining-records/{dining_record.id}/reviews",
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == 200
     data = response.json()
     assert data["rating"] == "good"
     assert data["comment"] == "Great meal!"
     
     # Test getting review for non-existent dining record
     response = client.get(
-        "/dining-records/999/reviews/",
+        "/dining-records/999/reviews",
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Dining record not found"
 
-def test_update_review(client, test_user_token, test_user, db):
+def test_update_review(client: TestClient, test_user_token, test_user, db):
     # Create a test dining record and review
-    from ..models import DiningRecord
     dining_record = DiningRecord(
         user_id=test_user.id,
         order_id=1,
@@ -139,42 +168,46 @@ def test_update_review(client, test_user_token, test_user, db):
     # Test updating the review
     updated_review = {
         "rating": "bad",
-        "comment": "Excellent meal!"
+        "comment": "Not so good"
     }
     response = client.put(
-        f"/dining-records/{dining_record.id}/reviews/",
+        f"/dining-records/{dining_record.id}/reviews",
         json=updated_review,
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == 200
     data = response.json()
     assert data["rating"] == "bad"
-    assert data["comment"] == "Excellent meal!"
+    assert data["comment"] == "Not so good"
     
     # Test updating non-existent review
     response = client.put(
-        "/dining-records/999/reviews/",
+        "/dining-records/999/reviews",
         json=updated_review,
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Dining record not found"
 
-def test_unauthorized_review_access(client):
+def test_unauthorized_review_access(client: TestClient):
     # Test accessing review endpoints without authentication
-    response = client.get("/dining-records/1/reviews/")
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    response = client.get("/dining-records/1/reviews")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
     
     response = client.post(
-        "/dining-records/1/reviews/",
+        "/dining-records/1/reviews",
         json={"rating": "good", "comment": "test"}
     )
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
     
     response = client.put(
-        "/dining-records/1/reviews/",
+        "/dining-records/1/reviews",
         json={"rating": "good", "comment": "test"}
     )
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
 
 def test_get_menu_item_rating(client, test_user_token, test_user, db):
     # Clean up any existing reviews and dining records for this menu item

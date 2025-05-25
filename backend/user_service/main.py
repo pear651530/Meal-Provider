@@ -9,6 +9,7 @@ from sqlalchemy import func
 
 from . import models, schemas, database
 from .database import get_db
+from .rabbitmq import setup_rabbitmq, start_consumer_thread
 
 # Create FastAPI app
 app = FastAPI(title="User Service API")
@@ -24,6 +25,31 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Add API key configuration
 API_KEY = "mealprovider_admin_key"  # Should be obtained from environment variables in production
+
+# Store the consumer thread
+consumer_thread = None
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    global consumer_thread
+    # Set up RabbitMQ
+    setup_rabbitmq()
+    # Get a database session
+    db = next(get_db())
+    try:
+        # Start the consumer thread
+        consumer_thread = start_consumer_thread(db)
+    finally:
+        db.close()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    global consumer_thread
+    if consumer_thread and consumer_thread.is_alive():
+        # The thread is a daemon thread, so it will be terminated when the main process exits
+        pass
 
 # Authentication related functions
 def create_access_token(data: dict):
@@ -113,13 +139,17 @@ def create_review(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    # First check if dining record exists
     db_dining_record = db.query(models.DiningRecord).filter(
-        models.DiningRecord.id == dining_record_id,
-        models.DiningRecord.user_id == current_user.id
+        models.DiningRecord.id == dining_record_id
     ).first()
     
     if not db_dining_record:
         raise HTTPException(status_code=404, detail="Dining record not found")
+    
+    # Then check if it belongs to the current user
+    if db_dining_record.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to review this dining record")
     
     db_review = models.Review(
         **review.dict(),
@@ -290,4 +320,38 @@ def get_all_dining_records(
     db: Session = Depends(get_db),
     api_key: str = Depends(verify_api_key)
 ):
-    return db.query(models.DiningRecord).all() 
+    return db.query(models.DiningRecord).all()
+
+# Get user notifications
+@app.get("/users/{user_id}/notifications", response_model=List[schemas.Notification])
+def get_user_notifications(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    return db.query(models.Notification).filter(
+        models.Notification.user_id == user_id
+    ).order_by(models.Notification.created_at.desc()).all()
+
+# Mark notification as read
+@app.put("/notifications/{notification_id}/read", response_model=schemas.Notification)
+def mark_notification_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    notification = db.query(models.Notification).filter(
+        models.Notification.id == notification_id,
+        models.Notification.user_id == current_user.id
+    ).first()
+    
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    notification.is_read = True
+    db.commit()
+    db.refresh(notification)
+    return notification 
