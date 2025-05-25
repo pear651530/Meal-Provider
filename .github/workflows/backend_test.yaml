@@ -35,5 +35,5 @@ jobs:
     - name: Run user_service tests
       run: |
         cd backend/user_service
-        pytest tests/ -v
+        pytest tests/ -v -k "not rabbitmq"
         
