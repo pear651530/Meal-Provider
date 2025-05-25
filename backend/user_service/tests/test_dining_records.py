@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 from ..models import DiningRecord
 from fastapi import status
+from fastapi.testclient import TestClient
 
 def test_get_dining_record(client, test_user_token, test_user, db):
     # Clean up any existing dining records
@@ -79,7 +80,7 @@ def test_unauthorized_dining_record_access(client):
     response = client.get("/users/1/dining-records/")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-def test_get_all_dining_records(client, test_admin_token, test_user_token, test_user, db):
+def test_get_all_dining_records(client: TestClient, db):
     # Clean up any existing dining records
     db.query(DiningRecord).delete()
     db.commit()
@@ -87,7 +88,7 @@ def test_get_all_dining_records(client, test_admin_token, test_user_token, test_
     # Create multiple test dining records
     dining_records = [
         DiningRecord(
-            user_id=test_user.id,
+            user_id=1,
             order_id=1,
             menu_item_id=1,
             menu_item_name="Test Menu Item 1",
@@ -95,7 +96,7 @@ def test_get_all_dining_records(client, test_admin_token, test_user_token, test_
             payment_status="paid"
         ),
         DiningRecord(
-            user_id=test_user.id,
+            user_id=1,
             order_id=2,
             menu_item_id=2,
             menu_item_name="Test Menu Item 2",
@@ -107,12 +108,12 @@ def test_get_all_dining_records(client, test_admin_token, test_user_token, test_
         db.add(record)
     db.commit()
 
-    # Test getting all dining records as admin
+    # Test getting all dining records with API key
     response = client.get(
         "/dining-records/",
-        headers={"Authorization": f"Bearer {test_admin_token}"}
+        headers={"X-API-Key": "mealprovider_admin_key"}
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
     
@@ -126,9 +127,15 @@ def test_get_all_dining_records(client, test_admin_token, test_user_token, test_
     assert data[1]["payment_status"] == "unpaid"
     assert data[1]["total_amount"] == 200.0
 
-    # Test accessing without admin privileges
+    # Test accessing without API key
+    response = client.get("/dining-records/")
+    assert response.status_code == 422  # FastAPI returns 422 for missing required header
+    assert "detail" in response.json()
+
+    # Test accessing with invalid API key
     response = client.get(
         "/dining-records/",
-        headers={"Authorization": f"Bearer {test_user_token}"}
+        headers={"X-API-Key": "invalid_key"}
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN 
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid API key" 

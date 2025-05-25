@@ -392,8 +392,14 @@ async def get_all_dining_records(
     admin: dict = Depends(verify_admin)
 ):
     try:
-        # Forward request to user service
-        response = requests.get(f"{USER_SERVICE_URL}/dining-records/")
+        # Forward request to user service with API key
+        response = requests.get(
+            f"{USER_SERVICE_URL}/dining-records/",
+            headers={
+                "Authorization": f"Bearer {admin['token']}",
+                "X-API-Key": "mealprovider_admin_key"  # Add API key
+            }
+        )
         if response.status_code != 200:
             raise HTTPException(
                 status_code=response.status_code,

@@ -102,10 +102,13 @@ def test_get_all_dining_records(client: TestClient, mock_admin_user):
         assert data[1]["payment_status"] == "unpaid"
         assert data[1]["total_amount"] == 200.0
 
-        # Verify that the request was made to the correct URL
+        # Verify that the request was made to the correct URL with API key
         mock_get.assert_called_once_with(
             "http://user-service:8000/dining-records/",
-            headers={"Authorization": "Bearer test_token"}
+            headers={
+                "Authorization": "Bearer test_token",
+                "X-API-Key": "mealprovider_admin_key"
+            }
         )
 
 def test_get_all_dining_records_user_service_error(client: TestClient, mock_admin_user):

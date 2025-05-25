@@ -222,36 +222,6 @@ def update_review(
     db.refresh(db_review)
     return db_review
 
-@app.get("/users/unpaid", response_model=List[schemas.UnpaidUser])
-def get_unpaid_users(
-    db: Session = Depends(get_db),
-    api_key: str = Depends(verify_api_key)
-):
-    # Query all users with unpaid dining records
-    unpaid_records = db.query(
-        models.User.id,
-        models.User.username,
-        models.DiningRecord.total_amount
-    ).join(
-        models.DiningRecord,
-        models.User.id == models.DiningRecord.user_id
-    ).filter(
-        models.DiningRecord.payment_status == "unpaid"
-    ).all()
-    
-    # Group by user and sum unpaid amounts
-    user_unpaid = {}
-    for user_id, username, amount in unpaid_records:
-        if user_id not in user_unpaid:
-            user_unpaid[user_id] = {
-                "user_id": user_id,
-                "user_name": username,
-                "unpaidAmount": 0
-            }
-        user_unpaid[user_id]["unpaidAmount"] += amount
-    
-    return list(user_unpaid.values())
-
 @app.get("/ratings/{menu_item_id}", response_model=schemas.MenuItemRating)
 def get_menu_item_rating(
     menu_item_id: int,
@@ -284,10 +254,40 @@ def get_menu_item_rating(
         "good_ratio": good_ratio
     }
 
+@app.get("/users/unpaid", response_model=List[schemas.UnpaidUser])
+def get_unpaid_users(
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    # Query all users with unpaid dining records
+    unpaid_records = db.query(
+        models.User.id,
+        models.User.username,
+        models.DiningRecord.total_amount
+    ).join(
+        models.DiningRecord,
+        models.User.id == models.DiningRecord.user_id
+    ).filter(
+        models.DiningRecord.payment_status == "unpaid"
+    ).all()
+    
+    # Group by user and sum unpaid amounts
+    user_unpaid = {}
+    for user_id, username, amount in unpaid_records:
+        if user_id not in user_unpaid:
+            user_unpaid[user_id] = {
+                "user_id": user_id,
+                "user_name": username,
+                "unpaidAmount": 0
+            }
+        user_unpaid[user_id]["unpaidAmount"] += amount
+    
+    return list(user_unpaid.values())
+
 # Get all dining records (admin only)
 @app.get("/dining-records/", response_model=List[schemas.DiningRecord])
 def get_all_dining_records(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_admin)
+    api_key: str = Depends(verify_api_key)
 ):
     return db.query(models.DiningRecord).all() 
