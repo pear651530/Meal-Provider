@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 import jwt
 
 from ..main import app
-from ..models import Base, User, DiningRecord, Review
-from ..database import get_db
+from .. import models, schemas, database
+from ..database import Base
 
 # Create test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -29,7 +29,7 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[database.get_db] = override_get_db
 
 client = TestClient(app)
 
@@ -76,10 +76,10 @@ def auth_headers():
 @pytest.fixture
 def test_user_instance(test_db):
     db = TestingSessionLocal()
-    user = db.query(User).filter(User.username == test_user_data["username"]).first()
+    user = db.query(models.User).filter(models.User.username == test_user_data["username"]).first()
     if user:
         return user
-    user = User(
+    user = models.User(
         username=test_user_data["username"],
         hashed_password=test_user_data["password"],  # In real app, this would be hashed
         role="employee"
@@ -92,7 +92,7 @@ def test_user_instance(test_db):
 @pytest.fixture
 def test_dining_record_instance(test_user_instance, test_db):
     db = TestingSessionLocal()
-    dining_record = DiningRecord(
+    dining_record = models.DiningRecord(
         user_id=test_user_instance.id,
         order_id=test_dining_record["order_id"],
         menu_item_id=test_dining_record["menu_item_id"],
@@ -114,7 +114,7 @@ def create_tables():
 
 @pytest.fixture(scope="function")
 def db():
-    # Create the test database
+    # Create the test database tables
     Base.metadata.create_all(bind=engine)
     
     # Create a new database session for the test
@@ -135,23 +135,20 @@ def client(db):
         finally:
             db.close()
     
-    app.dependency_overrides[get_db] = override_get_db
-    
-    with TestClient(app) as test_client:
-        yield test_client
-    
+    app.dependency_overrides[database.get_db] = override_get_db
+    yield TestClient(app)
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="function")
 def test_user(db):
     # First check if user exists
-    existing_user = db.query(User).filter(User.username == "testuser").first()
+    existing_user = db.query(models.User).filter(models.User.username == "testuser").first()
     if existing_user:
         return existing_user
         
     # If not, create new user
     hashed_password = pwd_context.hash("password123")
-    user = User(
+    user = models.User(
         username="testuser",
         hashed_password=hashed_password,
         role="employee"
@@ -173,13 +170,13 @@ def test_user_token(test_user):
 @pytest.fixture(scope="function")
 def test_admin(db):
     # First check if admin exists
-    existing_admin = db.query(User).filter(User.username == "admin").first()
+    existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
     if existing_admin:
         return existing_admin
         
     # If not, create new admin
     hashed_password = pwd_context.hash("admin123")
-    admin = User(
+    admin = models.User(
         username="admin",
         hashed_password=hashed_password,
         role="admin"
@@ -196,4 +193,45 @@ def test_admin_token(test_admin):
         "sub": test_admin.username,
         "exp": datetime.utcnow() + timedelta(minutes=30)
     }
-    return jwt.encode(token_data, "mealprovider", algorithm="HS256") 
+    return jwt.encode(token_data, "mealprovider", algorithm="HS256")
+
+def create_test_user(username="testuser", password="testpassword", role="employee"):
+    """Helper function to create a test user"""
+    db = TestingSessionLocal()
+    try:
+        # Check if user already exists
+        user = db.query(models.User).filter(models.User.username == username).first()
+        if user:
+            return user
+        
+        # Create new user
+        hashed_password = pwd_context.hash(password)
+        user = models.User(
+            username=username,
+            hashed_password=hashed_password,
+            role=role
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    finally:
+        db.close()
+
+def create_test_notification(user_id, message, is_read=False, notification_type="system"):
+    """Helper function to create a test notification"""
+    db = TestingSessionLocal()
+    try:
+        notification = models.Notification(
+            user_id=user_id,
+            message=message,
+            notification_type=notification_type,
+            is_read=is_read,
+            created_at=datetime.utcnow()
+        )
+        db.add(notification)
+        db.commit()
+        db.refresh(notification)
+        return notification
+    finally:
+        db.close() 
