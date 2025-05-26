@@ -1,8 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
 from typing import List
 import requests
 from datetime import datetime
+from fastapi.responses import StreamingResponse
+import io
+from sqlalchemy import func
 
 from . import models, schemas, database
 from .database import get_db
@@ -147,6 +150,43 @@ def update_order_status(
     order.status = status
     db.commit()
     return {"message": "Order status updated successfully"} 
+
+router = APIRouter()
+
+@router.get("/analytics", response_class=StreamingResponse)
+def get_analytics(db: Session = Depends(get_db)):
+    # Aggregate: item_id, item_name, total_quantity, total_income
+    results = (
+        db.query(
+            models.MenuItem.id.label("item_id"),
+            models.MenuItem.EN_name.label("item_name"),
+            func.sum(models.OrderItem.quantity).label("quantity"),
+            func.sum(models.OrderItem.unit_price * models.OrderItem.quantity).label("income")
+        )
+        .join(models.OrderItem, models.MenuItem.id == models.OrderItem.menu_item_id)
+        .join(models.Order, models.OrderItem.order_id == models.Order.id)
+        .group_by(models.MenuItem.id, models.MenuItem.EN_name)
+        .order_by(func.sum(models.OrderItem.quantity).desc())
+        .all()
+    )
+
+    if not results:
+        raise HTTPException(status_code=404, detail="No order data found")
+
+    # Generate CSV
+    buffer = io.StringIO()
+    buffer.write("item_id,item_name,quantity,income\n")
+    for row in results:
+        buffer.write(f"{row.item_id},{row.item_name},{row.quantity},{row.income:.2f}\n")
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=analytics.csv"}
+    )
+    
+app.include_router(router, prefix="/api", tags=["Analytics"])
 
 @app.get("/")
 def root():

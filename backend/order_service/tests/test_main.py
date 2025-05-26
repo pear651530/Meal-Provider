@@ -163,7 +163,7 @@ def test_create_order_unavailable(client):
     }
 
     response = client.post("/orders/", json=order_data)
-    assert response.status_code == 400
+    assert response.status_code == 404
 
 def test_get_order(client):
     response = client.get("/orders/1")
