@@ -100,4 +100,38 @@ def test_analytics(client):
     assert df["item_name"].tolist() == ["Test Menu Item 1"]
     assert df["quantity"].tolist() == [2]
     assert df["income"].tolist() == [20.0]
-    
+
+    order_item_data_user3_3 = {
+        "user_id": 3,
+        "payment_method": "credit_card",
+        "status": "completed", 
+        "items": [
+            {
+                "menu_item_id": 1,
+                "quantity": 2,
+                "unit_price": 10.0
+            }
+        ]
+    }
+    client.post("/orders/", json=order_item_data_user3_3)
+
+    params = [
+    ("report_type", "menu_preferences"),
+    ("report_period", "weekly"),
+    ]
+    params.extend([("order_ids", oid) for oid in [1, 2]])
+
+    response = client.get("/api/analytics", params=params)
+    print("Menu Preferences Response", response)
+    assert response.status_code == 200
+
+    csv_data = response.content.decode("utf-8")
+    df = pd.read_csv(StringIO(csv_data))
+    print("Menu Preferences DataFrame", df)
+    """
+    total_order_ids,recent_orders_within_period
+    1,1
+    """
+    assert not df.empty
+    assert df["total_order_ids"].tolist() == [2]
+    assert df["recent_orders_within_period"].tolist() == [2]

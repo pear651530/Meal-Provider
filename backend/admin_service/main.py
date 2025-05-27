@@ -331,16 +331,43 @@ async def fetch_analytics_report(
             item_id = row.pop("item_id")
 
             try:
-                rating_res = requests.get(f"{USER_SERVICE_URL}/ratings/{item_id}")
+                # rating_res = requests.get(f"{USER_SERVICE_URL}/ratings/{item_id}")
+                rating_res = requests.get(f"{USER_SERVICE_URL}/ratingswithorder/{item_id}")
                 if rating_res.status_code == 200:
                     rating_data = rating_res.json()
-                    row["total_reviews"] = rating_data["total_reviews"]
-                    row["good_reviews"] = rating_data["good_reviews"]
-                    row["good_ratio"] = rating_data["good_ratio"]
+                    params = [
+                        ("report_type", "menu_preferences"),
+                        ("report_period", report_period)
+                    ]
+                    params.extend([("order_ids", oid) for oid in rating_data.get("order_ids", [])])
+                    response_with_order_ids = requests.get(
+                        f"{ORDER_SERVICE_URL}/api/analytics",
+                        params = params
+                    )
+                    if response_with_order_ids.status_code == 200:
+                        csv_lines_with_order_ids = response_with_order_ids.iter_lines(decode_unicode=True)
+                        reader_with_order_ids = csv.DictReader(csv_lines_with_order_ids)
+                        result_with_order_ids = next(reader_with_order_ids, None)
+                        total_order_id_count = int(result_with_order_ids["total_order_ids"])
+                        valid_order_id_count = int(result_with_order_ids["recent_orders_within_period"])
+                        invalid_order_id_count = total_order_id_count - valid_order_id_count
+                        row["total_reviews"] = rating_data["total_reviews"] - invalid_order_id_count
+                        row["good_reviews"] = rating_data["good_reviews"] - invalid_order_id_count
+                        row["good_ratio"] = round((rating_data["good_reviews"] - invalid_order_id_count) / (rating_data["total_reviews"] - invalid_order_id_count), 2) if (rating_data["total_reviews"] - invalid_order_id_count) > 0 else 0.0
+                    else:
+                        row["total_reviews"] = rating_data["total_reviews"]
+                        row["good_reviews"] = rating_data["good_reviews"]
+                        row["good_ratio"] = rating_data["good_ratio"]
+                        errors.append(f"menu_item_id {item_id} response {rating_res.status_code}")
+
+
+                    #row["total_reviews"] = rating_data["total_reviews"]
+                    #row["good_reviews"] = rating_data["good_reviews"]
+                    #row["good_ratio"] = rating_data["good_ratio"]
 
                     # ✅ 累加總評論數與好評數
-                    sum_total_reviews += int(rating_data["total_reviews"])
-                    sum_good_reviews += int(rating_data["good_reviews"])
+                    sum_total_reviews += int(rating_data["total_reviews"]) - invalid_order_id_count
+                    sum_good_reviews += int(rating_data["good_reviews"]) - invalid_order_id_count
                 else:
                     row["total_reviews"] = ""
                     row["good_reviews"] = ""

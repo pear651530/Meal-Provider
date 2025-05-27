@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 import io
 from sqlalchemy import func
 from datetime import date, datetime, time ,timedelta
+from fastapi import Query
 
 from . import models, schemas, database
 from .database import get_db
@@ -158,20 +159,21 @@ router = APIRouter()
 def get_analytics(
     report_type: str = "order_trends", # select from "order_trends", "menu_preferences"
     report_period: str = "daily", # select from "daily", "weekly", "monthly"
+    order_ids: List[int] = Query(default=None),
     db: Session = Depends(get_db)
 ):
     if report_type not in ["order_trends", "menu_preferences"]:
         raise HTTPException(status_code=400, detail="Invalid report type")
     if report_period not in ["daily", "weekly", "monthly"]:
         raise HTTPException(status_code=400, detail="Invalid report period")
-    
-    if report_type == "order_trends":
-        # Aggregate: item_id, item_name, total_quantity, total_income
-        day_dict = {
+    day_dict = {
             "daily": 1,
             "weekly": 7,
             "monthly": 30
         }
+    if report_type == "order_trends":
+        # Aggregate: item_id, item_name, total_quantity, total_income
+        
         results = (
             db.query(
                 models.MenuItem.id.label("item_id"),
@@ -203,8 +205,37 @@ def get_analytics(
             headers={"Content-Disposition": "attachment; filename=analytics.csv"}
         )
     elif report_type == "menu_preferences":
-        raise HTTPException(status_code=400, detail="Preferences shouild be obtained from user")
+        if order_ids is None:
+            raise HTTPException(status_code=400, detail="Order IDs must be provided for menu preferences report")
+        # Define date threshold
+        start_date = datetime.utcnow() - timedelta(days=day_dict[report_period])
     
+        # Query how many of the given order_ids are within the time window
+        recent_order_count = (
+            db.query(models.Order)
+            .filter(
+                models.Order.id.in_(order_ids),
+                models.Order.order_date >= start_date
+            )
+            .count()
+        )
+    
+        # Generate CSV
+        buffer = io.StringIO()
+        buffer.write("total_order_ids,recent_orders_within_period\n")
+        buffer.write(f"{len(order_ids)},{recent_order_count}\n")
+        buffer.seek(0)
+    
+        return StreamingResponse(
+            buffer,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=menu_preferences.csv"}
+        )
+        
+
+
+
+
 app.include_router(router, prefix="/api", tags=["Analytics"])
 
 @app.get("/")

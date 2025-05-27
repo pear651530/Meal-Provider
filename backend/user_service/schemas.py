@@ -86,3 +86,14 @@ class Notification(BaseModel):
 
     class Config:
         orm_mode = True 
+
+class MenuItemRatingWithOrders(BaseModel):
+    menu_item_id: int
+    menu_item_name: str
+    total_reviews: int  # Total number of reviews for this menu item
+    good_reviews: int
+    good_ratio: float  # Ratio of good reviews (good_reviews / total_reviews)
+    order_ids: List[int]
+
+    class Config:
+        from_attributes = True
