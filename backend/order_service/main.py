@@ -6,6 +6,7 @@ from datetime import datetime
 from fastapi.responses import StreamingResponse
 import io
 from sqlalchemy import func
+from datetime import date, datetime, time ,timedelta
 
 from . import models, schemas, database
 from .database import get_db
@@ -97,7 +98,7 @@ async def create_order(
         total_amount=total_amount,
         payment_method=order.payment_method,
         status=order.status,
-        payment_status=order.payment_status
+        payment_status=order.payment_status,
     )
     db.add(db_order)
     db.commit()
@@ -154,37 +155,55 @@ def update_order_status(
 router = APIRouter()
 
 @router.get("/analytics", response_class=StreamingResponse)
-def get_analytics(db: Session = Depends(get_db)):
-    # Aggregate: item_id, item_name, total_quantity, total_income
-    results = (
-        db.query(
-            models.MenuItem.id.label("item_id"),
-            models.MenuItem.EN_name.label("item_name"),
-            func.sum(models.OrderItem.quantity).label("quantity"),
-            func.sum(models.OrderItem.unit_price * models.OrderItem.quantity).label("income")
+def get_analytics(
+    report_type: str = "order_trends", # select from "order_trends", "menu_preferences"
+    report_period: str = "daily", # select from "daily", "weekly", "monthly"
+    db: Session = Depends(get_db)
+):
+    if report_type not in ["order_trends", "menu_preferences"]:
+        raise HTTPException(status_code=400, detail="Invalid report type")
+    if report_period not in ["daily", "weekly", "monthly"]:
+        raise HTTPException(status_code=400, detail="Invalid report period")
+    
+    if report_type == "order_trends":
+        # Aggregate: item_id, item_name, total_quantity, total_income
+        day_dict = {
+            "daily": 1,
+            "weekly": 7,
+            "monthly": 30
+        }
+        results = (
+            db.query(
+                models.MenuItem.id.label("item_id"),
+                models.MenuItem.EN_name.label("item_name"),
+                func.sum(models.OrderItem.quantity).label("quantity"),
+                func.sum(models.OrderItem.unit_price * models.OrderItem.quantity).label("income")
+            )
+            .join(models.OrderItem, models.MenuItem.id == models.OrderItem.menu_item_id)
+            .join(models.Order, models.OrderItem.order_id == models.Order.id)
+            .filter(models.Order.order_date >= (datetime.utcnow() - timedelta(days=day_dict[report_period])))
+            .group_by(models.MenuItem.id, models.MenuItem.EN_name)
+            .order_by(func.sum(models.OrderItem.quantity).desc())
+            .all()
         )
-        .join(models.OrderItem, models.MenuItem.id == models.OrderItem.menu_item_id)
-        .join(models.Order, models.OrderItem.order_id == models.Order.id)
-        .group_by(models.MenuItem.id, models.MenuItem.EN_name)
-        .order_by(func.sum(models.OrderItem.quantity).desc())
-        .all()
-    )
 
-    if not results:
-        raise HTTPException(status_code=404, detail="No order data found")
+        if not results:
+            raise HTTPException(status_code=404, detail="No order data found")
 
-    # Generate CSV
-    buffer = io.StringIO()
-    buffer.write("item_id,item_name,quantity,income\n")
-    for row in results:
-        buffer.write(f"{row.item_id},{row.item_name},{row.quantity},{row.income:.2f}\n")
-    buffer.seek(0)
+        # Generate CSV
+        buffer = io.StringIO()
+        buffer.write("item_id,item_name,quantity,income\n")
+        for row in results:
+            buffer.write(f"{row.item_id},{row.item_name},{row.quantity},{row.income:.2f}\n")
+        buffer.seek(0)
 
-    return StreamingResponse(
-        buffer,
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=analytics.csv"}
-    )
+        return StreamingResponse(
+            buffer,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=analytics.csv"}
+        )
+    elif report_type == "menu_preferences":
+        raise HTTPException(status_code=400, detail="Preferences shouild be obtained from user")
     
 app.include_router(router, prefix="/api", tags=["Analytics"])
 

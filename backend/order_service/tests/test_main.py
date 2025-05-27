@@ -138,7 +138,7 @@ def test_create_order_available(client):
     assert item["payment_method"] == order_data["payment_method"]
     assert item["status"] == "pending"
     assert item["payment_status"] == "unpaid"
-    assert item["total_amount"] == 30.0
+    assert item["total_amount"] == 35.0 # 2 * 10.0 + 1 * 15.0
 
 def test_create_order_unavailable(client):
     menu_item_data = {
@@ -221,7 +221,7 @@ def test_get_user_orders(client):
     amount_temp = 0
     for item in data:
         amount_temp += item["total_amount"]
-    assert amount_temp == 60.0
+    assert amount_temp == 70.0 # 2 * (2 * 10.0 + 1 * 10.0) = 70.0
 
 def test_update_order_status(client):
     order_status_data = {

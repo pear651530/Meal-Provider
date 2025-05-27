@@ -307,6 +307,13 @@ async def fetch_analytics_report(
 ):
     try:
         response = requests.get(f"{ORDER_SERVICE_URL}/api/analytics", stream=True)
+        # 從訂單服務獲取數據
+       #wait for check , first push 
+       #  response = requests.get(
+       #     f"{ORDER_SERVICE_URL}/api/analytics",
+       #     params={"report_type": report_type, "period": report_period}
+       # )
+        order_data = response.json()
 
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail="Failed to fetch analytics report")
