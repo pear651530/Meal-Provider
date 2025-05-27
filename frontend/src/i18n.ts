@@ -88,6 +88,8 @@ const translations = {
     "更新後餐點資料": "Updated meal data",
     "餐點已更新！": "Meals updated!",
     "推薦比例": "Recommendation Rate",
+    "下載報表": "Download report",
+    "已下載！": "Downloaded!",
 
     // TodayMeals
     "今日餐點_頁面": "Today's Meals",
@@ -206,6 +208,8 @@ const translations = {
     "更新後餐點資料": "更新後餐點資料",
     "餐點已更新！": "餐點已更新！",
     "推薦比例": "推薦比例",
+    "下載報表": "下載報表",
+    "已下載！": "已下載！",
 
     // TodayMeals
     "今日餐點_頁面": "今日餐點",

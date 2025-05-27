@@ -99,6 +99,15 @@
     align-items: center;
 }
 
+.MenuEditor-button.download {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    align-items: center;
+    background-color: #ff9800;
+    color: white;
+}
+
 .MenuEditor-add-form {
     margin: 20px auto 0 auto;
     /* 上 20px，左右 auto */

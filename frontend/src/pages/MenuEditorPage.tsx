@@ -124,6 +124,10 @@ function MenuEditorPage() {
         alert(t("餐點已更新！"));
     };
 
+    const handleDownloadReport = () => {
+        alert(t("已下載！"));
+    };
+
     const handleAddMeal = () => {
         const nextId = meals.length === 0 ? 1 : Math.max(...meals.map((m) => m.id)) + 1;
         const { name, englishName, price, image } = newMeal;
@@ -209,6 +213,9 @@ function MenuEditorPage() {
                         className="MenuEditor-button add"
                     >
                         {t("新增餐點")}
+                    </button>
+                    <button onClick={handleDownloadReport} className="MenuEditor-button download">
+                        {t("下載報表")}
                     </button>
                 </div>
 
