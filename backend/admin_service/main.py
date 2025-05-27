@@ -11,9 +11,9 @@ import io
 import csv
 import pika
 import json
-
 from .rabbitmq import send_notifications_to_users, send_menu_notification
-
+from fastapi import HTTPException, status
+from googletrans import Translator
 USER_SERVICE_URL = "http://user-service:8000"
 ORDER_SERVICE_URL = "http://order-service:8000"
 
@@ -36,6 +36,37 @@ async def verify_admin(token: str, db: Session = Depends(get_db)):
     except requests.RequestException:
         raise HTTPException(status_code=503, detail="User service unavailable")
 
+
+
+translator = Translator()
+
+async def validate_and_translate_names(ZH_name: str, EN_name: str) -> tuple[str, str]:
+    """
+    檢查 ZH_name 與 EN_name 是否同時為空，若其中一方為空白，則用翻譯補上。
+
+    :param ZH_name: 中文名稱（可空白）
+    :param EN_name: 英文名稱（可空白）
+    :return: 傳回補齊後的 (ZH_name, EN_name)
+    :raises HTTPException: 兩者同時空白時拋錯
+    """
+    zh = ZH_name.strip() if isinstance(ZH_name, str) else ""
+    en = EN_name.strip() if isinstance(EN_name, str) else ""
+
+    if zh == "" and en == "":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one of ZH_name or EN_name must be provided."
+        )
+
+    if zh == "":
+        result = await translator.translate(en, dest='zh-TW')
+        zh = result.text
+
+    if en == "":
+        result = await translator.translate(zh, dest='en')
+        en = result.text
+
+    return zh, en
 
 # 取得所有菜品
 @app.get("/menu-items/", response_model=List[schemas.MenuItem])
@@ -60,7 +91,7 @@ async def get_menu_item(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
     return schemas.MenuItem.from_orm(menu_item)
 
-# 新增：硬刪除菜品 (將其從資料庫完全移除)
+# 硬刪除菜品 (將其從資料庫完全移除)
 @app.delete("/menu-items/{menu_item_id}/hard-delete", status_code=status.HTTP_200_OK)
 async def hard_delete_menu_item(
     menu_item_id: int,
@@ -97,7 +128,7 @@ async def hard_delete_menu_item(
 
     return {"message": f"Menu item with id {menu_item_id} hard deleted successfully and change recorded."}
 
-# 新增：上架/下架菜單項目
+# 上架/下架菜單項目
 @app.put("/menu-items/{menu_item_id}/toggle-availability", response_model=schemas.MenuItem)
 async def toggle_menu_item_availability(
     menu_item_id: int,
@@ -144,6 +175,9 @@ async def create_menu_item(
     """
     新增一個新的菜單項目，並記錄變更。
     """
+    zh, en =await validate_and_translate_names(menu_item.ZH_name, menu_item.EN_name)
+    menu_item.ZH_name = zh
+    menu_item.EN_name = en
     # 將 Pydantic 模型轉換為 SQLAlchemy 模型
     db_menu_item = models.MenuItem(**menu_item.dict())
     db.add(db_menu_item)
@@ -208,7 +242,13 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == menu_item_id).first()
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
-
+    
+    new_ZH = menu_change_data.new_values.get("ZH_name", menu_item.ZH_name)
+    new_EN = menu_change_data.new_values.get("EN_name", menu_item.EN_name)
+    zh, en = await validate_and_translate_names(new_ZH, new_EN)
+    # 更新回 new_values
+    menu_change_data.new_values["ZH_name"] = zh
+    menu_change_data.new_values["EN_name"] = en
     # 記錄實際被修改的欄位及其新值
     new_values_for_db = {}
     # 記錄被修改欄位的舊值
