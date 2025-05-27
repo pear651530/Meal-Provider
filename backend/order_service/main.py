@@ -23,6 +23,15 @@ consumer_thread = None
 
 @app.on_event("startup")
 async def startup_event():
+    from .database import engine
+    from .models import Base
+
+    def init_db():
+        Base.metadata.create_all(bind=engine)
+
+    print("Creating database tables...")
+    init_db()
+    print("Database tables created successfully!")
     """Initialize services on startup"""
     global consumer_thread
     # Set up RabbitMQ
