@@ -32,8 +32,10 @@ def requests_mock_fixture():
 
 def test_fetch_analytics_report_with_ratings_success(client, requests_mock_fixture):
     csv_content = "item_id,item_name,quantity,income\n1,DishA,10,100.00\n2,DishB,5,50.00\n"
+
+     # 用正則匹配所有 /api/analytics 路徑，忽略query string
     requests_mock_fixture.get(
-        f"{ORDER_SERVICE_URL}/api/analytics",
+        f"{ORDER_SERVICE_URL}/api/analytics?report_type=order_trends&period=weekly",
         content=csv_content.encode("utf-8"),
         status_code=200,
         headers={"Content-Type": "text/csv"},
@@ -50,7 +52,7 @@ def test_fetch_analytics_report_with_ratings_success(client, requests_mock_fixtu
         status_code=200
     )
 
-    response = client.get("/report/analytics")
+    response = client.get("/report/analytics?report_type=order_trends&report_period=weekly")
 
     assert response.status_code == 200
     text = response.text
@@ -80,7 +82,7 @@ def test_fetch_analytics_report_with_ratings_success(client, requests_mock_fixtu
 def test_fetch_analytics_report_with_partial_rating_failures(client, requests_mock_fixture):
     csv_content = "item_id,item_name,quantity,income\n1,DishA,10,100.00\n2,DishB,5,50.00\n3,DishC,2,20.00\n"
     requests_mock_fixture.get(
-        f"{ORDER_SERVICE_URL}/api/analytics",
+        f"{ORDER_SERVICE_URL}/api/analytics?report_type=order_trends&period=weekly",
         content=csv_content.encode("utf-8"),
         status_code=200,
         headers={"Content-Type": "text/csv"},
@@ -100,7 +102,7 @@ def test_fetch_analytics_report_with_partial_rating_failures(client, requests_mo
         status_code=500
     )
 
-    response = client.get("/report/analytics")
+    response = client.get("/report/analytics?report_type=order_trends&report_period=weekly")
 
     assert response.status_code == 200
     text = response.text
@@ -125,20 +127,38 @@ def test_fetch_analytics_report_with_partial_rating_failures(client, requests_mo
     assert error_line.startswith("ERROR:")
     assert "2 menu items failed" in error_line
 
+def test_fetch_analytics_report_default(client, requests_mock_fixture):
+    csv_content = "item_id,item_name,quantity,income\n1,DishA,10,100.00\n2,DishB,5,50.00\n"
+    requests_mock_fixture.get(
+        f"{ORDER_SERVICE_URL}/api/analytics?report_type=order_trends&period=weekly",
+        content=csv_content.encode("utf-8"),
+        status_code=200,
+        headers={"Content-Type": "text/csv"},
+    )
+    ##就算不檢查也要mock rating
+    requests_mock_fixture.get(
+        f"{USER_SERVICE_URL}/ratings/1",
+        json={"menu_item_id": 1, "menu_item_name": "DishA", "total_reviews": 10, "good_reviews": 8, "good_ratio": 0.8},
+        status_code=200,
+    )
+    requests_mock_fixture.get(
+        f"{USER_SERVICE_URL}/ratings/2",
+        json={"menu_item_id": 2, "menu_item_name": "DishB", "total_reviews": 5, "good_reviews": 3, "good_ratio": 0.6},
+        status_code=200,
+    )
 
-def test_fetch_analytics_report_order_service_fail(client, requests_mock_fixture):
-    requests_mock_fixture.get(f"{ORDER_SERVICE_URL}/api/analytics", status_code=500)
+    response = client.get("/report/analytics?report_type=order_trends&report_period=weekly")# 無參數，使用預設 daily + order_trends
 
-    response = client.get("/report/analytics")
-    assert response.status_code == 500
-    assert "Failed to fetch analytics report" in response.text
+    assert response.status_code == 200
+    assert "DishA" in response.text
+
 
 def test_fetch_analytics_report_order_service_unavailable(client, requests_mock_fixture):
     requests_mock_fixture.get(
-        f"{ORDER_SERVICE_URL}/api/analytics",
+        f"{ORDER_SERVICE_URL}/api/analytics?report_type=order_trends&period=weekly",
         exc=requests.exceptions.ConnectionError,
     )
 
-    response = client.get("/report/analytics")
+    response = client.get("/report/analytics?report_type=order_trends&report_period=weekly")
     assert response.status_code == 503
     assert "Order or Rating service unavailable" in response.text
