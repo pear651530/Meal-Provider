@@ -57,7 +57,6 @@ def db():
         db.rollback() # 回滾所有未提交的更改
         db.close()
 
-# --- FastAPO Client Fixture (使用你提供的樣板) ---
 
 @pytest.fixture(scope="function")
 def client(db):
@@ -99,7 +98,6 @@ def mock_external_services_and_rabbitmq():
         m.get(f"{ORDER_SERVICE_URL}/orders/analytics", json={"total_sales": 5000, "item_counts": {"dish1": 100}}, status_code=200)
 
         # Mock RabbitMQ 發送函數，確保它們不會實際執行發送操作
-        # *** 修正這裡的 patch 路徑！現在是 'admin_service.main.send_menu_notification' ***
         with mock.patch('admin_service.main.send_menu_notification') as mock_send_menu_notification, \
              mock.patch('admin_service.main.send_notifications_to_users') as mock_send_notifications_to_users:
             yield m # 繼續執行測試

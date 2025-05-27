@@ -6,7 +6,9 @@ import requests
 from datetime import datetime, timedelta
 from . import models, schemas
 from .database import get_db, Base, engine # <-- 確保從 database.py 導入 Base 和 engine
-
+from fastapi.responses import StreamingResponse
+import io
+import csv
 import pika
 import json
 
@@ -87,7 +89,7 @@ async def hard_delete_menu_item(
         change_type="hard_remove", # 變更類型改為 'hard_remove' 以示區別
         old_values=old_values_for_db,
         new_values={}, # 刪除時新值為空
-        changed_by=1 # 暫時改固定數字for test
+        changed_by=admin["id"]
     )
     db.add(db_menu_change)
     db.commit()
@@ -100,7 +102,7 @@ async def hard_delete_menu_item(
 async def toggle_menu_item_availability(
     menu_item_id: int,
     db: Session = Depends(get_db),
-    #admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Depends(verify_admin) #至關掉FOR TEST
 ) -> schemas.MenuItem:
     """
     切換菜單項目的上架/下架狀態 (is_available)。
@@ -125,7 +127,7 @@ async def toggle_menu_item_availability(
         change_type="toggle_availability",
         old_values=old_values_for_db,
         new_values=new_values_for_db,
-        changed_by=1 # 暫時改固定數字for test
+        changed_by=admin["id"]
     )
     db.add(db_menu_change)
     db.commit()
@@ -299,46 +301,94 @@ async def create_billing_notifications(
     db.commit()
     return notifications
 
-# 分析報表相關路由
-@app.post("/analytics/", response_model=schemas.Analytics)
-async def generate_analytics(
-    report_type: str,
-    report_period: str,
-    db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+@app.get("/report/analytics", response_class=StreamingResponse)
+async def fetch_analytics_report(
+    admin: dict = Depends(verify_admin)
 ):
     try:
-        # 從訂單服務獲取數據
-        response = requests.get(
-            f"{ORDER_SERVICE_URL}/orders/analytics",
-            params={"report_type": report_type, "period": report_period}
-        )
-        order_data = response.json()
+        response = requests.get(f"{ORDER_SERVICE_URL}/api/analytics", stream=True)
 
-        # 創建分析報表
-        analytics = models.Analytics(
-            report_type=report_type,
-            report_period=report_period,
-            report_date=datetime.utcnow(),
-            data=order_data
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="Failed to fetch analytics report")
+
+        csv_lines = response.iter_lines(decode_unicode=True)
+        reader = csv.DictReader(csv_lines)
+
+        enriched_rows = []
+        errors = []
+
+        total_income = 0.0
+        total_quantity = 0
+        sum_total_reviews = 0
+        sum_good_reviews = 0
+
+        for row in reader:
+            item_id = row.pop("item_id")
+
+            try:
+                rating_res = requests.get(f"{USER_SERVICE_URL}/ratings/{item_id}")
+                if rating_res.status_code == 200:
+                    rating_data = rating_res.json()
+                    row["total_reviews"] = rating_data["total_reviews"]
+                    row["good_reviews"] = rating_data["good_reviews"]
+                    row["good_ratio"] = rating_data["good_ratio"]
+
+                    # ✅ 累加總評論數與好評數
+                    sum_total_reviews += int(rating_data["total_reviews"])
+                    sum_good_reviews += int(rating_data["good_reviews"])
+                else:
+                    row["total_reviews"] = ""
+                    row["good_reviews"] = ""
+                    row["good_ratio"] = ""
+                    errors.append(f"menu_item_id {item_id} response {rating_res.status_code}")
+            except requests.RequestException as e:
+                row["total_reviews"] = ""
+                row["good_reviews"] = ""
+                row["good_ratio"] = ""
+                errors.append(f"menu_item_id {item_id} error: {str(e)}")
+
+            try:
+                total_income += float(row["income"])
+                total_quantity += int(row["quantity"])
+            except ValueError:
+                pass
+
+            enriched_rows.append(row)
+
+        # 加總好評比
+        total_good_ratio = round(sum_good_reviews / sum_total_reviews, 2) if sum_total_reviews else ""
+
+        output = io.StringIO()
+        fieldnames = list(enriched_rows[0].keys())
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(enriched_rows)
+
+        writer.writerow({
+            fieldnames[0]: "TOTAL",
+            "quantity": total_quantity,
+            "income": f"{total_income:.2f}",
+            "total_reviews": sum_total_reviews,
+            "good_reviews": sum_good_reviews,
+            "good_ratio": total_good_ratio
+        })
+
+        # ✅ 加入錯誤提示行
+        if errors:
+            writer.writerow({
+                fieldnames[0]: f"ERROR: {len(errors)} menu items failed to fetch ratings."
+            })
+
+        output.seek(0)
+
+        return StreamingResponse(
+            output,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=analytics_with_ratings.csv"}
         )
-        db.add(analytics)
-        db.commit()
-        db.refresh(analytics)
-        return analytics
+
     except requests.RequestException:
-        raise HTTPException(status_code=503, detail="Order service unavailable")
-
-@app.get("/analytics/", response_model=List[schemas.Analytics])
-async def get_analytics(
-    report_type: Optional[str] = None,
-    db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
-):
-    query = db.query(models.Analytics)
-    if report_type:
-        query = query.filter(models.Analytics.report_type == report_type)
-    return query.all()
+        raise HTTPException(status_code=503, detail="Order or Rating service unavailable")
 
 # Get all dining records
 @app.get("/dining-records/", response_model=List[Dict])
