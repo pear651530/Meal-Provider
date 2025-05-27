@@ -80,7 +80,8 @@ def test_analytics(client):
         ]
     }
     client.post("/orders/", json=order_item_data_user3_2)
-    response = client.get("/api/analytics")
+
+    response = client.get("/api/analytics", params={"report_type": "order_trends", "report_period": "weekly"})
 
     # assert response.status_code == 200
     #print(response.json())

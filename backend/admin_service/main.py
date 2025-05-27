@@ -310,7 +310,7 @@ async def generate_analytics(
     try:
         # 從訂單服務獲取數據
         response = requests.get(
-            f"{ORDER_SERVICE_URL}/orders/analytics",
+            f"{ORDER_SERVICE_URL}/api/analytics",
             params={"report_type": report_type, "period": report_period}
         )
         order_data = response.json()
