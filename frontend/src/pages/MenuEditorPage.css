@@ -50,6 +50,7 @@
 }
 
 .MenuEditor-card {
+    position: relative;
     border: 1px solid #ccc;
     padding: 10px;
     background-color: white;
@@ -144,7 +145,7 @@
     color: #37474f;
 }
 
-.MenuEditor-edit-button {
+.MenuEditor-card-button {
     position: absolute;
     bottom: 8px;
     right: 8px;

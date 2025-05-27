@@ -111,7 +111,7 @@ function MenuEditorPage() {
             <p>{t("價格")}：{meal.price} {t("元")}</p>
             <p>{t("推薦比例")}：{calculateRecommendationRate(meal.comments)}</p>
             <button
-                className="MenuEditor-edit-button"
+                className="MenuEditor-card-button"
                 onClick={() => setEditMeal(meal)}
             >
                 ✏️
