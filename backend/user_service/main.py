@@ -6,6 +6,7 @@ import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from sqlalchemy import func
+from fastapi.middleware.cors import CORSMiddleware
 
 from . import models, schemas, database
 from .database import get_db
@@ -13,6 +14,14 @@ from .rabbitmq import setup_rabbitmq, start_consumer_thread
 
 # Create FastAPI app
 app = FastAPI(title="User Service API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Password encryption configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
