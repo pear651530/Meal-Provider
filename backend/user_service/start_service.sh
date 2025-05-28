@@ -13,6 +13,9 @@ until pg_isready -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB; do
   sleep 2
 done
 
+echo "Initializing database..."
+python -c "from user_service.init_db import init_db; init_db()"
+
 echo "Waiting for users table to be ready..."
 
 until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "SELECT 1 FROM users LIMIT 1;" > /dev/null 2>&1; do
