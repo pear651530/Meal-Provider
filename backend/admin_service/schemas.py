@@ -13,11 +13,11 @@ class MenuItem(MenuItemCreate):
     created_at: datetime  # 包含創建時間
     updated_at: Optional[datetime] = None # 包含更新時間
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class MenuChangeBase(BaseModel):
     menu_item_id: int
-    change_type: str  # "add", "update", "remove"
+    change_type: str  # "add", "update", "hard_remove","toggle_availability"
 
 class MenuChangeCreate(MenuChangeBase):
     old_values: Optional[Dict] = None
@@ -31,7 +31,7 @@ class MenuChange(MenuChangeBase):
     new_values: Dict
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class BillingNotificationBase(BaseModel):
     user_id: int
@@ -46,7 +46,7 @@ class BillingNotification(BillingNotificationBase):
     paid_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AnalyticsBase(BaseModel):
     report_type: str  # "order_trends", "menu_preferences"
@@ -59,4 +59,4 @@ class Analytics(AnalyticsBase):
     generated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True

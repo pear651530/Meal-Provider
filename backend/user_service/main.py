@@ -355,3 +355,38 @@ def mark_notification_read(
     db.commit()
     db.refresh(notification)
     return notification 
+
+@app.get("/ratingswithorder/{menu_item_id}", response_model=schemas.MenuItemRatingWithOrders)
+def get_menu_item_rating(
+    menu_item_id: int,
+    db: Session = Depends(get_db)
+):
+    # Get all dining records for this menu item
+    dining_records = db.query(models.DiningRecord).filter(
+        models.DiningRecord.menu_item_id == menu_item_id
+    ).all()
+    
+    if not dining_records:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    # Get all reviews for these dining records
+    dining_record_ids = [dr.id for dr in dining_records]
+    reviews = db.query(models.Review).filter(
+        models.Review.dining_record_id.in_(dining_record_ids)
+    ).all()
+    
+    # Calculate statistics
+    total_reviews = len(reviews)
+    good_reviews = sum(1 for review in reviews if review.rating == "good")
+    good_ratio = good_reviews / total_reviews if total_reviews > 0 else 0
+
+    order_ids = [dr.order_id for dr in dining_records]
+
+    return {
+        "menu_item_id": menu_item_id,
+        "menu_item_name": dining_records[0].menu_item_name,
+        "total_reviews": total_reviews,
+        "good_reviews": good_reviews,
+        "good_ratio": good_ratio,
+        "order_ids": order_ids
+    }

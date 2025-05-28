@@ -1,16 +1,57 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from sqlalchemy.orm import Session
 from typing import List
 import requests
 from datetime import datetime
+from fastapi.responses import StreamingResponse
+import io
+from sqlalchemy import func
+from datetime import date, datetime, time ,timedelta
+from fastapi import Query
 
 from . import models, schemas, database
 from .database import get_db
+
+from .rabbitmq import *
 
 app = FastAPI(title="Order Service API")
 
 # 用戶服務URL（在k8s中會通過服務發現來獲取）
 USER_SERVICE_URL = "http://user-service:8000"
+
+consumer_thread = None
+
+@app.on_event("startup")
+async def startup_event():
+    from .database import engine
+    from .models import Base
+
+    def init_db():
+        Base.metadata.create_all(bind=engine)
+
+    print("Creating database tables...")
+    init_db()
+    print("Database tables created successfully!")
+    """Initialize services on startup"""
+    global consumer_thread
+    # Set up RabbitMQ
+    setup_rabbitmq()
+    # Get a database session
+    db = next(get_db())
+    try:
+        # Start the consumer thread
+        consumer_thread = start_consumer_thread(db)
+    finally:
+        db.close()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    global consumer_thread
+    if consumer_thread and consumer_thread.is_alive():
+        # The thread is a daemon thread, so it will be terminated when the main process exits
+        pass
+
 
 # 驗證用戶token的依賴
 async def verify_token(token: str, db: Session = Depends(get_db)):
@@ -67,7 +108,7 @@ async def create_order(
         total_amount=total_amount,
         payment_method=order.payment_method,
         status=order.status,
-        payment_status=order.payment_status
+        payment_status=order.payment_status,
     )
     db.add(db_order)
     db.commit()
@@ -120,6 +161,91 @@ def update_order_status(
     order.status = status
     db.commit()
     return {"message": "Order status updated successfully"} 
+
+router = APIRouter()
+
+@router.get("/analytics", response_class=StreamingResponse)
+def get_analytics(
+    report_type: str = "order_trends", # select from "order_trends", "menu_preferences"
+    report_period: str = "daily", # select from "daily", "weekly", "monthly"
+    order_ids: List[int] = Query(default=None),
+    db: Session = Depends(get_db)
+):
+    if report_type not in ["order_trends", "menu_preferences"]:
+        raise HTTPException(status_code=400, detail="Invalid report type")
+    if report_period not in ["daily", "weekly", "monthly"]:
+        raise HTTPException(status_code=400, detail="Invalid report period")
+    day_dict = {
+            "daily": 1,
+            "weekly": 7,
+            "monthly": 30
+        }
+    if report_type == "order_trends":
+        # Aggregate: item_id, item_name, total_quantity, total_income
+        
+        results = (
+            db.query(
+                models.MenuItem.id.label("item_id"),
+                models.MenuItem.EN_name.label("item_name"),
+                func.sum(models.OrderItem.quantity).label("quantity"),
+                func.sum(models.OrderItem.unit_price * models.OrderItem.quantity).label("income")
+            )
+            .join(models.OrderItem, models.MenuItem.id == models.OrderItem.menu_item_id)
+            .join(models.Order, models.OrderItem.order_id == models.Order.id)
+            .filter(models.Order.order_date >= (datetime.utcnow() - timedelta(days=day_dict[report_period])))
+            .group_by(models.MenuItem.id, models.MenuItem.EN_name)
+            .order_by(func.sum(models.OrderItem.quantity).desc())
+            .all()
+        )
+
+        if not results:
+            raise HTTPException(status_code=404, detail="No order data found")
+
+        # Generate CSV
+        buffer = io.StringIO()
+        buffer.write("item_id,item_name,quantity,income\n")
+        for row in results:
+            buffer.write(f"{row.item_id},{row.item_name},{row.quantity},{row.income:.2f}\n")
+        buffer.seek(0)
+
+        return StreamingResponse(
+            buffer,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=analytics.csv"}
+        )
+    elif report_type == "menu_preferences":
+        if order_ids is None:
+            raise HTTPException(status_code=400, detail="Order IDs must be provided for menu preferences report")
+        # Define date threshold
+        start_date = datetime.utcnow() - timedelta(days=day_dict[report_period])
+    
+        # Query how many of the given order_ids are within the time window
+        recent_order_count = (
+            db.query(models.Order)
+            .filter(
+                models.Order.id.in_(order_ids),
+                models.Order.order_date >= start_date
+            )
+            .count()
+        )
+    
+        # Generate CSV
+        buffer = io.StringIO()
+        buffer.write("total_order_ids,recent_orders_within_period\n")
+        buffer.write(f"{len(order_ids)},{recent_order_count}\n")
+        buffer.seek(0)
+    
+        return StreamingResponse(
+            buffer,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=menu_preferences.csv"}
+        )
+        
+
+
+
+
+app.include_router(router, prefix="/api", tags=["Analytics"])
 
 @app.get("/")
 def root():

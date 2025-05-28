@@ -9,6 +9,7 @@ RABBITMQ_USER = "guest"
 RABBITMQ_PASSWORD = "guest"
 NOTIFICATION_EXCHANGE = "notifications"
 NOTIFICATION_ROUTING_KEY = "billing.notification"
+MENU_NOTIFICATION_QOUTING_KEY = "menu.notification"
 
 def get_rabbitmq_channel():
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
@@ -64,3 +65,31 @@ def send_notifications_to_users(unpaid_users):
         send_notification(user)
     
     return len(unpaid_users) 
+
+def send_menu_notification(menu_item):
+    """
+    Send a menu item notification to RabbitMQ
+    """
+    channel, connection = get_rabbitmq_channel()
+    
+    notification = {
+        "ZH_name": menu_item["ZH_name"],
+        "EN_name": menu_item["EN_name"],
+        "price": menu_item["price"],
+        "URL": menu_item["URL"],
+        "is_available": menu_item.get("is_available", True),
+    }
+    
+    # Publish notification to RabbitMQ
+    channel.basic_publish(
+        exchange=NOTIFICATION_EXCHANGE,
+        routing_key=MENU_NOTIFICATION_QOUTING_KEY,
+        body=json.dumps(notification),
+        properties=pika.BasicProperties(
+            delivery_mode=2,  # make message persistent
+            content_type='application/json'
+        )
+    )
+    
+    # Close RabbitMQ connection
+    connection.close()

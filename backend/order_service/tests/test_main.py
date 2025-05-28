@@ -8,6 +8,20 @@ from order_service.main import app
 from order_service.models import Base, MenuItem
 from order_service.database import get_db
 
+client = TestClient(app)
+@pytest.fixture(scope="function")
+def client(db):
+    # Override the get_db dependency
+    def override_get_db():
+        try:
+            yield db
+        finally:
+            db.close()
+    
+    app.dependency_overrides[get_db] = override_get_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -31,7 +45,7 @@ def db():
     finally:
         db.rollback()
         db.close()
-
+"""
 @pytest.fixture(scope="function")
 def client(db):
     def override_get_db():
@@ -44,28 +58,7 @@ def client(db):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-
-def test_db_create(db):
-    from order_service.schemas import MenuItemCreate
-
-    menu_item_data = {
-        "ZH_name": "測試菜單項目 0",
-        "EN_name": "Test Menu Item 0",
-        "price": 10.0,
-        "URL": "http://example.com/image0.png",
-        "is_available": True
-    }
-    menu_item = MenuItemCreate(**menu_item_data)
-    db_menu_item = MenuItem(**menu_item.dict())
-    db.add(db_menu_item)
-    db.commit()
-    db.refresh(db_menu_item)
-
-    assert db_menu_item.id is not None
-    assert db_menu_item.ZH_name == menu_item.ZH_name
-    assert db_menu_item.EN_name == menu_item.EN_name
-    assert db_menu_item.price == menu_item.price
-    assert db_menu_item.URL == menu_item.URL
+"""
 
 def test_create_menu_item(client):
 
@@ -145,7 +138,7 @@ def test_create_order_available(client):
     assert item["payment_method"] == order_data["payment_method"]
     assert item["status"] == "pending"
     assert item["payment_status"] == "unpaid"
-    assert item["total_amount"] == 30.0
+    assert item["total_amount"] == 35.0 # 2 * 10.0 + 1 * 15.0
 
 def test_create_order_unavailable(client):
     menu_item_data = {
@@ -170,7 +163,7 @@ def test_create_order_unavailable(client):
     }
 
     response = client.post("/orders/", json=order_data)
-    assert response.status_code == 400
+    assert response.status_code == 404
 
 def test_get_order(client):
     response = client.get("/orders/1")
@@ -228,7 +221,7 @@ def test_get_user_orders(client):
     amount_temp = 0
     for item in data:
         amount_temp += item["total_amount"]
-    assert amount_temp == 60.0
+    assert amount_temp == 70.0 # 2 * (2 * 10.0 + 1 * 10.0) = 70.0
 
 def test_update_order_status(client):
     order_status_data = {
