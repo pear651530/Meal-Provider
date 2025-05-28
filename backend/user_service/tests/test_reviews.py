@@ -6,6 +6,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 def test_create_review(client: TestClient, test_user_token, test_dining_record_instance, db):
+    # Clean up any existing reviews
+    db.query(Review).delete()
+    db.commit()
+
     # Create review data
     review_data = {
         "rating": "good",
