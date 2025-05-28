@@ -132,7 +132,7 @@ function MenuEditorPage() {
         const nextId = meals.length === 0 ? 1 : Math.max(...meals.map((m) => m.id)) + 1;
         const { name, englishName, price, image } = newMeal;
 
-        if (!name || !price || !image || !englishName) {
+        if (!name || !price || !image) {// || !englishName
             alert(t("請填寫完整資訊"));
             return;
         }
@@ -150,6 +150,7 @@ function MenuEditorPage() {
         setMeals((prev) => [...prev, newItem]);
         setNewMeal({ name: "", englishName: "", price: "", image: "" });
         setShowAddForm(false);
+        console.log(t("新增餐點資料"), newItem);
         alert(t("餐點已新增！"));
     };
 
@@ -224,25 +225,25 @@ function MenuEditorPage() {
                         <h4>{t("新增餐點資訊")}</h4>
                         <input
                             type="text"
-                            placeholder={t("餐點名稱")}
+                            placeholder={t("餐點名稱 (必填)")}
                             value={newMeal.name}
                             onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
                         />
                         <input
                             type="text"
-                            placeholder={t("餐點英文名稱")}
+                            placeholder={t("餐點英文名稱 (非必填)")}
                             value={newMeal.englishName}
                             onChange={(e) => setNewMeal({ ...newMeal, englishName: e.target.value })}
                         />
                         <input
                             type="number"
-                            placeholder={t("價格")}
+                            placeholder={t("價格 (必填)")}
                             value={newMeal.price}
                             onChange={(e) => setNewMeal({ ...newMeal, price: e.target.value })}
                         />
                         <input
                             type="text"
-                            placeholder={t("圖片連結")}
+                            placeholder={t("圖片連結 (必填)")}
                             value={newMeal.image}
                             onChange={(e) => setNewMeal({ ...newMeal, image: e.target.value })}
                         />

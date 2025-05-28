@@ -13,5 +13,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 
 ## How To Run
+
 npm install
+
 npm run dev
