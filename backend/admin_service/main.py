@@ -12,7 +12,9 @@ import csv
 import pika
 import json
 from .rabbitmq import send_notifications_to_users, send_menu_notification
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import HTTPException, status
+from fastapi import Security
 from googletrans import Translator
 USER_SERVICE_URL = "http://user-service:8000"
 ORDER_SERVICE_URL = "http://order-service:8000"
@@ -20,7 +22,14 @@ ORDER_SERVICE_URL = "http://order-service:8000"
 app = FastAPI(title="Admin Service API")
 
 
-async def verify_admin(token: str, db: Session = Depends(get_db)):
+security = HTTPBearer()
+
+async def verify_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    token = credentials.credentials  # 從 Authorization: Bearer <token> 拿到 token 字串
+
     try:
         response = requests.get(
             f"{USER_SERVICE_URL}/users/me",
@@ -28,7 +37,7 @@ async def verify_admin(token: str, db: Session = Depends(get_db)):
         )
         if response.status_code != 200:
             raise HTTPException(status_code=401, detail="Invalid token")
-        
+
         user_data = response.json()
         if user_data["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin privileges required")
@@ -72,7 +81,7 @@ async def validate_and_translate_names(ZH_name: str, EN_name: str) -> tuple[str,
 @app.get("/menu-items/", response_model=List[schemas.MenuItem])
 async def get_all_menu_items(
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) 
+    admin: dict = Security(verify_admin)
 ) -> List[schemas.MenuItem]:
     menu_items = db.query(models.MenuItem).all()
     # 使用 from_orm 方法將 SQLAlchemy ORM 物件轉換為 Pydantic Schema 物件
@@ -84,7 +93,7 @@ async def get_all_menu_items(
 async def get_menu_item(
     menu_item_id: int,
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin) #至關掉FOR TEST
 ) -> schemas.MenuItem:
     menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == menu_item_id).first()
     if not menu_item:
@@ -95,8 +104,8 @@ async def get_menu_item(
 @app.delete("/menu-items/{menu_item_id}/hard-delete", status_code=status.HTTP_200_OK)
 async def hard_delete_menu_item(
     menu_item_id: int,
-    db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin)
+    db: Session = Depends(get_db),    
+    admin: dict = Security(verify_admin)
 ) -> Dict[str, str]:
     menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == menu_item_id).first()
     if not menu_item:
@@ -133,7 +142,7 @@ async def hard_delete_menu_item(
 async def toggle_menu_item_availability(
     menu_item_id: int,
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin)
 ) -> schemas.MenuItem:
     """
     切換菜單項目的上架/下架狀態 (is_available)。
@@ -170,7 +179,7 @@ async def toggle_menu_item_availability(
 async def create_menu_item(
     menu_item: schemas.MenuItemCreate,
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin) #至關掉FOR TEST
 ) -> schemas.MenuItem:
     """
     新增一個新的菜單項目，並記錄變更。
@@ -229,7 +238,7 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     menu_item_id: int,
     menu_change_data: schemas.MenuChangeCreate,
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin) #至關掉FOR TEST
 ) -> schemas.MenuChange:
     """
     更新菜單項目並記錄其變更。
@@ -324,7 +333,7 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
 @app.post("/billing-notifications/", response_model=List[schemas.BillingNotification])
 async def create_billing_notifications(
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin) #至關掉FOR TEST
 ):
     # 獲取所有未結賬的訂單
     try:
@@ -358,7 +367,7 @@ async def create_billing_notifications(
 
 @app.get("/report/analytics", response_class=StreamingResponse)
 async def fetch_analytics_report(
-    admin: dict = Depends(verify_admin),
+    admin: dict = Security(verify_admin),
     report_period: str = Query("daily", enum=["daily", "weekly", "monthly"]),
     #GET /report/analytics?report_type=order_trends&report_period=weekly
 ):
@@ -480,7 +489,7 @@ async def fetch_analytics_report(
 @app.get("/dining-records/", response_model=List[Dict])
 async def get_all_dining_records(
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin) #至關掉FOR TEST
 ):
     try:
         # Forward request to user service with API key
@@ -507,7 +516,7 @@ async def get_all_dining_records(
 @app.get("/users/unpaid", response_model=List[Dict])
 async def get_unpaid_users(
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin) #至關掉FOR TEST
 ):
     try:
         # Forward request to user service with API key
@@ -534,7 +543,7 @@ async def get_unpaid_users(
 @app.post("/billing-notifications/send", response_model=Dict)
 async def send_billing_notifications(
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin)
+    admin: dict = Security(verify_admin)
 ):
     try:
         # Get unpaid users from user service

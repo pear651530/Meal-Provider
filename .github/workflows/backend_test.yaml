@@ -43,5 +43,4 @@ jobs:
         cd backend/admin_service
         pytest tests/test_main.py
         pytest tests/test_report_analytics.py
-        pytest tests/test_billing.py
-        
+        pytest tests/test_billing.py       
