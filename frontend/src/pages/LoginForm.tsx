@@ -13,23 +13,34 @@ function LoginForm() {
     const navigate = useNavigate();
     const { login } = useAuth(); // 使用 context
 
-    const handleLogin = () => {
-        // 模擬帳號密碼驗證成功
-        if (
-            (username === "admin" ||
-                username === "alan" ||
-                username === "bob") &&
-            password === "1234"
-        ) {
-            const user = login(username); // 設定全域登入狀態
+    const handleLogin = async () => {
+        if (!username || !password) {
+            setMessage(t("請輸入帳號和密碼"));
+            return;
+        }
+        try {
+            const response = await fetch("http://localhost:8000/token", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                    username,
+                    password,
+                }),
+            });
+            if (!response.ok) {
+                setMessage(t("帳號或密碼錯誤"));
+                return;
+            }
+            const data = await response.json();
+            localStorage.setItem("access_token", data.access_token);
             setMessage(t("登入成功！"));
             setTimeout(() => {
                 navigate("/TodayMeals");
-                console.log(user?.DebtNeedNotice);
-                if (user?.DebtNeedNotice) alert(t("尚有餘款未繳清!"));
             }, 1000);
-        } else {
-            setMessage(t("帳號或密碼錯誤"));
+        } catch (error) {
+            setMessage(t("登入時發生錯誤"));
         }
     };
 
@@ -150,7 +161,7 @@ function LoginForm() {
                         onClick={handleLogin}
                         style={{
                             width: "100%",
-                            marginBottom: "20px",
+                            marginBottom: "10px",
                             padding: "12px",
                             backgroundColor: "#FFA500", // 亮橘色
                             color: "#ffffff",
@@ -161,12 +172,27 @@ function LoginForm() {
                     >
                         {t("登入")}
                     </button>
+                    <button
+                        onClick={handleRegister}
+                        style={{
+                            width: "100%",
+                            marginBottom: "20px",
+                            padding: "12px",
+                            backgroundColor: "#6c757d",
+                            color: "#ffffff",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                        }}
+                    >
+                        {t("註冊帳號")}
+                    </button>
 
                     {message && (
                         <p
                             style={{
                                 marginTop: "15px",
-                                color: message.includes("成功")
+                                color: message.includes(t("成功"))
                                     ? "lightgreen"
                                     : "red",
                                 textAlign: "center",
@@ -177,21 +203,7 @@ function LoginForm() {
                     )}
 
                     <div style={{ marginTop: "30px", textAlign: "center" }}>
-                        <button
-                            onClick={handleRegister}
-                            style={{
-                                marginRight: "10px",
-                                padding: "10px 20px",
-                                backgroundColor: "#6c757d",
-                                color: "#ffffff",
-                                border: "none",
-                                borderRadius: "8px",
-                                cursor: "pointer",
-                            }}
-                        >
-                            {t("註冊帳號")}
-                        </button>
-                        <button
+                        {/*<button
                             onClick={handleForgotPassword}
                             style={{
                                 padding: "10px 20px",
@@ -203,7 +215,7 @@ function LoginForm() {
                             }}
                         >
                             {t("忘記密碼")}
-                        </button>
+                        </button>*/}
                     </div>
                 </div>
             </div>
