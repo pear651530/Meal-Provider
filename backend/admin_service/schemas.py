@@ -49,7 +49,7 @@ class BillingNotification(BillingNotificationBase):
         from_attributes = True
 
 class AnalyticsBase(BaseModel):
-    report_type: str  # "order_trends", "menu_preferences"
+    report_type: str  # "order_trends",   # ("menu_preferences")暫不開放使用此參數固定只能order_trend
     report_period: str  # "daily", "weekly", "monthly"
     data: Dict
 
