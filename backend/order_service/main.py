@@ -1,21 +1,28 @@
-from fastapi import FastAPI, Depends, HTTPException, APIRouter
+import requests
+import io
+import os
+
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
-import requests
 from datetime import datetime
-from fastapi.responses import StreamingResponse
-import io
 from sqlalchemy import func
 from datetime import date, datetime, time ,timedelta
-from fastapi import Query
-import os
 
 from . import models, schemas, database
 from .database import get_db
-
 from .rabbitmq import *
 
 app = FastAPI(title="Order Service API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 用戶服務URL（在k8s中會通過服務發現來獲取）
 USER_SERVICE_URL = "http://user-service:8000"
