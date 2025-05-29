@@ -43,17 +43,6 @@ const AuthContext = createContext<AuthContextType>({
     logout: () => {},
 });
 
-const mockUsers = [
-    { username: "admin", isClerk: true, isAdmin: true, DebtNeedNotice: true },
-    {
-        username: "alan",
-        isClerk: true,
-        isAdmin: false,
-        DebtNeedNotice: false,
-    },
-    { username: "bob", isClerk: false, isAdmin: false, DebtNeedNotice: true },
-];
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [username, setUsername] = useState<string | null>(null);
     const [isClerk, setIsClerk] = useState(false);
@@ -76,6 +65,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setIsAdmin(true);
                 case "clerk":
                     setIsClerk(true);
+                default:
+                    // Default case - no special role privileges
+                    break;
             }
             setUsername(userData.username);
             setUser(userData);
@@ -112,6 +104,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setIsAdmin(true);
                 case "clerk":
                     setIsClerk(true);
+                default:
+                    // Default case - no special role privileges
+                    break;
             }
             setUser(userData);
             localStorage.setItem("auth_user", JSON.stringify(userData));
@@ -157,6 +152,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUsername(null);
         setIsClerk(false);
         setIsAdmin(false);
+        setIsSuperAdmin(false);
         setDebtNeedNotice(false);
         setToken(null);
         setUser(null);
