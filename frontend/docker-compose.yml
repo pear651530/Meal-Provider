@@ -6,5 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5731:80"
+      - "5173:5173"  # 對映 Vite 開發伺服器的 port
+    volumes:
+      - .:/app       # 將本地程式碼掛載到容器，支援 hot reload
+      - /app/node_modules  # 避免 host node_modules 汙染容器
     container_name: meal-provider-frontend
+    command: npm run dev -- --host 0.0.0.0
