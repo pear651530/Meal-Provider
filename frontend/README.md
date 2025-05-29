@@ -17,3 +17,7 @@ If you are developing a production application, we recommend using TypeScript wi
 npm install
 
 npm run dev
+
+## Test
+
+npx vitest
