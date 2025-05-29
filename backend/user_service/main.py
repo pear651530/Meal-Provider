@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import models, schemas, database
 from .database import get_db
-from .rabbitmq import setup_rabbitmq, start_consumer_thread
+from .rabbitmq import setup_rabbitmq, start_consumer_thread, start_order_consumer_thread
 
 # Create FastAPI app
 app = FastAPI(title="User Service API")
@@ -37,11 +37,12 @@ API_KEY = "mealprovider_admin_key"  # Should be obtained from environment variab
 
 # Store the consumer thread
 consumer_thread = None
+order_consumer_thread = None
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
-    global consumer_thread
+    global consumer_thread, order_consumer_thread
     # Set up RabbitMQ
     setup_rabbitmq()
     # Get a database session
@@ -49,13 +50,15 @@ async def startup_event():
     try:
         # Start the consumer thread
         consumer_thread = start_consumer_thread(db)
+        # Start the order consumer thread
+        order_consumer_thread = start_order_consumer_thread(db)
     finally:
         db.close()
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global consumer_thread
+    global consumer_thread, order_consumer_thread
     if consumer_thread and consumer_thread.is_alive():
         # The thread is a daemon thread, so it will be terminated when the main process exits
         pass
