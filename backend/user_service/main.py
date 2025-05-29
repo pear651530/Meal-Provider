@@ -216,7 +216,7 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(data={"sub": user.username, "role": user.role})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/dining-records/{dining_record_id}", response_model=schemas.DiningRecord)
@@ -468,3 +468,17 @@ def update_user_role(
     db.commit()
     db.refresh(target_user)
     return target_user
+
+@app.get("/users/all", response_model=List[schemas.User])
+def get_all_users(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # Check if user is admin or super_admin
+    if current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized. Admin or Super Admin access required."
+        )
+    
+    return db.query(models.User).all()

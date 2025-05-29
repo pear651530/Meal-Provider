@@ -60,4 +60,32 @@ def test_get_other_user_dining_records_admin(client: TestClient, test_admin_toke
     )
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list) 
+    assert isinstance(data, list)
+
+def test_get_all_users_admin(client: TestClient, test_admin_token, test_user, test_admin, db):
+    response = client.get(
+        "/users/all",
+        headers={"Authorization": f"Bearer {test_admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    # Should contain both test_user and test_admin
+    assert len(data) >= 2
+    # Verify both users are in the response
+    usernames = [user["username"] for user in data]
+    assert test_user.username in usernames
+    assert test_admin.username in usernames
+
+def test_get_all_users_regular_user_unauthorized(client: TestClient, test_user_token):
+    response = client.get(
+        "/users/all",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Not authorized. Admin or Super Admin access required."
+
+def test_get_all_users_unauthorized(client: TestClient):
+    response = client.get("/users/all")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated" 
