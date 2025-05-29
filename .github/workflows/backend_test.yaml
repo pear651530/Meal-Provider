@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - backend-dev
+      - combine
 
 jobs:
   Tests:
