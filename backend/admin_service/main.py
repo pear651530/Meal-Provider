@@ -520,7 +520,7 @@ async def get_unpaid_users(
 @app.post("/billing-notifications/send", response_model=Dict)
 async def send_billing_notifications(
     db: Session = Depends(get_db),
-    admin: dict = Depends(verify_admin) #至關掉FOR TEST
+    admin: dict = Depends(verify_admin)
 ):
     try:
         # Get unpaid users from user service
@@ -538,9 +538,20 @@ async def send_billing_notifications(
             )
         
         unpaid_users = response.json()
+        if not isinstance(unpaid_users, list):
+            raise HTTPException(
+                status_code=500,
+                detail="Invalid response format from user service"
+            )
         
         # Send notifications using the RabbitMQ module
-        notified_count = send_notifications_to_users(unpaid_users)
+        try:
+            notified_count = send_notifications_to_users(unpaid_users)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
         
         return {
             "message": f"Billing notifications sent to {notified_count} users",
