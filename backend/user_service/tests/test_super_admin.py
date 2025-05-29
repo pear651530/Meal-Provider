@@ -7,8 +7,9 @@ from passlib.context import CryptContext
 
 from ..main import app, get_db, pwd_context
 from ..models import Base, User, DiningRecord, Review, Notification
+from ..database import DATABASE_URL
 
-# Create test database
+# Override the database URL for testing
 TEST_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
     TEST_DATABASE_URL,
@@ -24,8 +25,9 @@ def override_get_db():
     finally:
         db.close()
 
-# Override the database dependency
+# Override the database dependency and URL
 app.dependency_overrides[get_db] = override_get_db
+app.state.database_url = TEST_DATABASE_URL
 
 client = TestClient(app)
 
@@ -52,6 +54,14 @@ def init_test_db():
     missing_tables = [table for table in required_tables if table not in tables]
     if missing_tables:
         raise AssertionError(f"Missing tables: {missing_tables}. Available tables: {tables}")
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_env():
+    """Setup test environment before any tests run"""
+    # Override the database URL
+    import user_service.database
+    user_service.database.DATABASE_URL = TEST_DATABASE_URL
+    yield
 
 @pytest.fixture(scope="function")
 def db():
