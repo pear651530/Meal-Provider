@@ -16,7 +16,10 @@ function Navbar(): React.ReactElement | null {
     const location = useLocation();
     const navigate = useNavigate();
     const currentPath = location.pathname;
-    const { username, isStaff, isManager, DebtNeedNotice, logout } = useAuth();
+    const { username, isClerk, isAdmin, isSuperAdmin, DebtNeedNotice, logout } =
+        useAuth();
+
+    console.log("auth :", useAuth());
     const { t, i18n } = useTranslation();
 
     const handleLogout = () => {
@@ -28,12 +31,15 @@ function Navbar(): React.ReactElement | null {
         const navLinks = [
             { label: t("今日餐點"), to: "/TodayMeals" },
             { label: t("用餐紀錄"), to: "/records" },
-            ...(isStaff ? [{ label: t("店員點餐"), to: "/orders" }] : []),
-            ...(isManager
+            ...(isClerk ? [{ label: t("店員點餐"), to: "/orders" }] : []),
+            ...(isAdmin
                 ? [
                       { label: t("員工賒帳紀錄"), to: "/staff-debt" },
                       { label: t("菜單調整"), to: "/menuEditor" },
                   ]
+                : []),
+            ...(isSuperAdmin
+                ? [{ label: t("員工管理"), to: "/staff-management" }]
                 : []),
         ];
 
