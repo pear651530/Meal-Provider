@@ -302,6 +302,21 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     #    print(f"Failed to notify Order Service about menu change: {e}")
     #    raise HTTPException(status_code=500, detail=f"Failed to notify Order Service: {e}")
 
+    try: 
+        # 將菜單項目轉換為字典格式，並發送到 RabbitMQ
+        dictionalized_menu_item = {
+            "id": menu_item.id,
+            "ZH_name": menu_item.ZH_name,
+            "EN_name": menu_item.EN_name,
+            "price": menu_item.price,
+            "URL": menu_item.URL,
+            "is_available": menu_item.is_available
+        }
+        send_menu_notification(dictionalized_menu_item)
+    except pika.exceptions.AMQPConnectionError as e:
+        print(f"Failed to send menu notification: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send menu notification: {str(e)}")
+
     return schemas.MenuChange.from_orm(db_menu_change)
 
 
@@ -344,14 +359,13 @@ async def create_billing_notifications(
 @app.get("/report/analytics", response_class=StreamingResponse)
 async def fetch_analytics_report(
     admin: dict = Depends(verify_admin),
-    report_type: str = Query("order_trends", enum=["order_trends", "menu_preferences"]),
     report_period: str = Query("daily", enum=["daily", "weekly", "monthly"]),
     #GET /report/analytics?report_type=order_trends&report_period=weekly
 ):
     try:
         response = requests.get(
             f"{ORDER_SERVICE_URL}/api/analytics",
-           params={"report_type": report_type, "period": report_period}
+           params={"report_type": "order_trends", "period": report_period}
         )
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail="Failed to fetch analytics report")
