@@ -12,7 +12,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     # email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    role = Column(String, default="employee")
+    role = Column(String, default="employee")   # employee, clerk, admin, super_admin
     created_at = Column(DateTime, default=datetime.utcnow)
     
     dining_records = relationship("DiningRecord", back_populates="user")
