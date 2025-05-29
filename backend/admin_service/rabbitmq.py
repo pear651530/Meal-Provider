@@ -80,10 +80,10 @@ def send_menu_notification(menu_item):
     channel, connection = get_rabbitmq_channel()
     
     notification = {
-        "ZH_name": menu_item["ZH_name"],
-        "EN_name": menu_item["EN_name"],
+        "zh_name": menu_item["zh_name"],
+        "en_name": menu_item["en_name"],
         "price": menu_item["price"],
-        "URL": menu_item["URL"],
+        "url": menu_item["url"],
         "is_available": menu_item.get("is_available", True),
     }
 

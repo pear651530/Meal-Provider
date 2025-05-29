@@ -217,10 +217,10 @@ async def create_menu_item(
         # menu_item to dict
         # send in rabbitmq with serialized schemas.MenuItemCreate
         dictionalized_menu_item = {
-            "ZH_name": menu_item.ZH_name,
-            "EN_name": menu_item.EN_name,
+            "zh_name": menu_item.ZH_name,
+            "en_name": menu_item.EN_name,
             "price": menu_item.price,
-            "URL": menu_item.URL,
+            "url": menu_item.URL,
             "is_available": menu_item.is_available
         }
         send_menu_notification(dictionalized_menu_item)
@@ -315,10 +315,10 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
         # 將菜單項目轉換為字典格式，並發送到 RabbitMQ
         dictionalized_menu_item = {
             "id": menu_item.id,
-            "ZH_name": menu_item.ZH_name,
-            "EN_name": menu_item.EN_name,
+            "zh_name": menu_item.ZH_name,
+            "en_name": menu_item.EN_name,
             "price": menu_item.price,
-            "URL": menu_item.URL,
+            "url": menu_item.URL,
             "is_available": menu_item.is_available
         }
         send_menu_notification(dictionalized_menu_item)

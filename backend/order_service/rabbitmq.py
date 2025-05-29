@@ -117,7 +117,7 @@ def setup_rabbitmq():
 def process_notification_menu(ch, method, properties, body, db: Session):
     try:
         data = json.loads(body)
-        required_fields = ["ZH_name", "EN_name", "price", "URL", "is_available"]
+        required_fields = ["zh_name", "en_name", "price", "url", "is_available"]
         optional_fields = ["id"]
         if not all(field in data for field in required_fields):
             logger.error("Notification data is missing required fields")
@@ -127,10 +127,10 @@ def process_notification_menu(ch, method, properties, body, db: Session):
         #if not exists, add
         if db.query(models.MenuItem).filter(models.MenuItem.id == current_menu_id).first() is None:
             menu_item = models.MenuItem(
-                ZH_name=data["ZH_name"],
-                EN_name=data["EN_name"],
+                zh_name=data["zh_name"],
+                en_name=data["en_name"],
                 price=data["price"],
-                URL=data["URL"],
+                url=data["url"],
                 is_available=data.get("is_available", True)
             )
             db.add(menu_item)
@@ -139,10 +139,10 @@ def process_notification_menu(ch, method, properties, body, db: Session):
             #already exists, update
             menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == current_menu_id).first()
             if menu_item:
-                menu_item.ZH_name = data["ZH_name"]
-                menu_item.EN_name = data["EN_name"]
+                menu_item.zh_name = data["zh_name"]
+                menu_item.en_name = data["en_name"]
                 menu_item.price = data["price"]
-                menu_item.URL = data["URL"]
+                menu_item.url = data["url"]
                 menu_item.is_available = data.get("is_available", True)
                 db.commit()
 
