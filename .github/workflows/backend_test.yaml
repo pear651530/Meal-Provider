@@ -30,7 +30,6 @@ jobs:
       run: |
         cd backend/order_service
         IS_TEST=true pytest tests/
-        pytest tests/
 
   User-Service-Tests:
     runs-on: ubuntu-latest
