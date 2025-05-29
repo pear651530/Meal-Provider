@@ -12,6 +12,7 @@ import csv
 import pika
 import json
 from .rabbitmq import send_notifications_to_users, send_menu_notification
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import HTTPException, status
 from googletrans import Translator
 USER_SERVICE_URL = "http://user-service:8000"
@@ -20,7 +21,14 @@ ORDER_SERVICE_URL = "http://order-service:8000"
 app = FastAPI(title="Admin Service API")
 
 
-async def verify_admin(token: str, db: Session = Depends(get_db)):
+security = HTTPBearer()
+
+async def verify_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    token = credentials.credentials  # 從 Authorization: Bearer <token> 拿到 token 字串
+
     try:
         response = requests.get(
             f"{USER_SERVICE_URL}/users/me",
@@ -28,7 +36,7 @@ async def verify_admin(token: str, db: Session = Depends(get_db)):
         )
         if response.status_code != 200:
             raise HTTPException(status_code=401, detail="Invalid token")
-        
+
         user_data = response.json()
         if user_data["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin privileges required")
