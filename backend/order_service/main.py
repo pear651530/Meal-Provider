@@ -1,20 +1,28 @@
-from fastapi import FastAPI, Depends, HTTPException, APIRouter
+import requests
+import io
+import os
+
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
-import requests
 from datetime import datetime
-from fastapi.responses import StreamingResponse
-import io
 from sqlalchemy import func
 from datetime import date, datetime, time ,timedelta
-from fastapi import Query
 
 from . import models, schemas, database
 from .database import get_db
-
 from .rabbitmq import *
 
 app = FastAPI(title="Order Service API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 用戶服務URL（在k8s中會通過服務發現來獲取）
 USER_SERVICE_URL = "http://user-service:8000"
@@ -33,14 +41,17 @@ async def startup_event():
     init_db()
     print("Database tables created successfully!")
     """Initialize services on startup"""
-    global consumer_thread
-    # Set up RabbitMQ
-    setup_rabbitmq()
+    
     # Get a database session
     db = next(get_db())
+    
     try:
-        # Start the consumer thread
-        consumer_thread = start_consumer_thread(db)
+        if os.getenv("IS_TEST") != "true":
+            global consumer_thread
+            # Set up RabbitMQ
+            setup_rabbitmq()
+            # Start the consumer thread
+            consumer_thread = start_consumer_thread(db)
     finally:
         db.close()
 
@@ -99,7 +110,7 @@ async def create_order(
         if not menu_item:
             raise HTTPException(status_code=404, detail=f"Menu item {item.menu_item_id} not found")
         if not menu_item.is_available:
-            raise HTTPException(status_code=400, detail=f"Menu item {menu_item.EN_name} is not available")
+            raise HTTPException(status_code=400, detail=f"Menu item {menu_item.en_name} is not available")
         total_amount += menu_item.price * item.quantity
 
     # 創建訂單
@@ -127,11 +138,12 @@ async def create_order(
             "user_id": order.user_id,
             "order_id": db_order.id,
             "menu_item_id": item.menu_item_id,
-            "menu_item_name": db.query(models.MenuItem).get(item.menu_item_id).EN_name,
+            "menu_item_name": db.query(models.MenuItem).get(item.menu_item_id).en_name,
             "total_amount": db_order_item.unit_price * item.quantity,
             "payment_status": db_order.payment_status
         }
-        send_order_notification(dining_record_item_dict) 
+        if os.getenv("IS_TEST") != "true":
+            send_order_notification(dining_record_item_dict) 
     
     db.commit()
     return db_order
@@ -195,14 +207,14 @@ def get_analytics(
         results = (
             db.query(
                 models.MenuItem.id.label("item_id"),
-                models.MenuItem.EN_name.label("item_name"),
+                models.MenuItem.en_name.label("item_name"),
                 func.sum(models.OrderItem.quantity).label("quantity"),
                 func.sum(models.OrderItem.unit_price * models.OrderItem.quantity).label("income")
             )
             .join(models.OrderItem, models.MenuItem.id == models.OrderItem.menu_item_id)
             .join(models.Order, models.OrderItem.order_id == models.Order.id)
             .filter(models.Order.order_date >= (datetime.utcnow() - timedelta(days=day_dict[report_period])))
-            .group_by(models.MenuItem.id, models.MenuItem.EN_name)
+            .group_by(models.MenuItem.id, models.MenuItem.en_name)
             .order_by(func.sum(models.OrderItem.quantity).desc())
             .all()
         )

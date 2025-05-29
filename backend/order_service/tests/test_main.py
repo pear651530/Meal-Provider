@@ -63,26 +63,26 @@ def client(db):
 def test_create_menu_item(client):
 
     menu_item_data = {
-        "ZH_name": "測試菜單項目 1",
-        "EN_name": "Test Menu Item 1",
+        "zh_name": "測試菜單項目 1",
+        "en_name": "Test Menu Item 1",
         "price": 10.0,
-        "URL": "http://example.com/image1.png",
+        "url": "http://example.com/image1.png",
         "is_available": True
     }
     response = client.post("/menu-items/", json=menu_item_data)
     assert response.status_code == 200
     data = response.json()
-    assert data["ZH_name"] == menu_item_data["ZH_name"]
-    assert data["EN_name"] == menu_item_data["EN_name"]
+    assert data["zh_name"] == menu_item_data["zh_name"]
+    assert data["en_name"] == menu_item_data["en_name"]
     assert data["price"] == menu_item_data["price"]
 
 
 def test_get_menu_items(client):
     menu_item_data = {
-        "ZH_name": "測試菜單項目 2",
-        "EN_name": "Test Menu Item 2",
+        "zh_name": "測試菜單項目 2",
+        "en_name": "Test Menu Item 2",
         "price": 15.0,
-        "URL": "http://example.com/image2.png",
+        "url": "http://example.com/image2.png",
         "is_available": True
     }
     client.post("/menu-items/", json=menu_item_data)
@@ -93,7 +93,7 @@ def test_get_menu_items(client):
 
     matched_item = None
     for item in items:
-        if item["ZH_name"] == menu_item_data["ZH_name"] and item["EN_name"] == menu_item_data["EN_name"]:
+        if item["zh_name"] == menu_item_data["zh_name"] and item["en_name"] == menu_item_data["en_name"]:
             matched_item = item
             break
     assert response.status_code == 200
@@ -105,10 +105,10 @@ def test_get_menu_items(client):
 
 def test_create_order_available(client):
     menu_item_data = {
-        "ZH_name": "create_order item available",
-        "EN_name": "Test Menu Item Available",
+        "zh_name": "create_order item available",
+        "en_name": "Test Menu Item Available",
         "price": 10.0,
-        "URL": "http://example.com/image_available.png",
+        "url": "http://example.com/image_available.png",
         "is_available": True
     }
     client.post("/menu-items/", json=menu_item_data)
@@ -142,10 +142,10 @@ def test_create_order_available(client):
 
 def test_create_order_unavailable(client):
     menu_item_data = {
-        "ZH_name": "create_order item unavailable",
-        "EN_name": "Test Menu Item Unavailable",
+        "zh_name": "create_order item unavailable",
+        "en_name": "Test Menu Item Unavailable",
         "price": 10.0,
-        "URL": "http://example.com/image_unavailable.png",
+        "url": "http://example.com/image_unavailable.png",
         "is_available": False
     }
     client.post("/menu-items/", json=menu_item_data)
