@@ -359,14 +359,13 @@ async def create_billing_notifications(
 @app.get("/report/analytics", response_class=StreamingResponse)
 async def fetch_analytics_report(
     admin: dict = Depends(verify_admin),
-    report_type: str = Query("order_trends", enum=["order_trends", "menu_preferences"]),
     report_period: str = Query("daily", enum=["daily", "weekly", "monthly"]),
     #GET /report/analytics?report_type=order_trends&report_period=weekly
 ):
     try:
         response = requests.get(
             f"{ORDER_SERVICE_URL}/api/analytics",
-           params={"report_type": report_type, "period": report_period}
+           params={"report_type": "order_trends", "period": report_period}
         )
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail="Failed to fetch analytics report")
