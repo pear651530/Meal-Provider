@@ -86,6 +86,9 @@ def send_menu_notification(menu_item):
         "URL": menu_item["URL"],
         "is_available": menu_item.get("is_available", True),
     }
+
+    if "id" in menu_item:
+        notification["id"] = menu_item["id"]
     
     # Publish notification to RabbitMQ
     channel.basic_publish(

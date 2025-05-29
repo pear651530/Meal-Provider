@@ -302,6 +302,21 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     #    print(f"Failed to notify Order Service about menu change: {e}")
     #    raise HTTPException(status_code=500, detail=f"Failed to notify Order Service: {e}")
 
+    try: 
+        # 將菜單項目轉換為字典格式，並發送到 RabbitMQ
+        dictionalized_menu_item = {
+            "id": menu_item.id,
+            "ZH_name": menu_item.ZH_name,
+            "EN_name": menu_item.EN_name,
+            "price": menu_item.price,
+            "URL": menu_item.URL,
+            "is_available": menu_item.is_available
+        }
+        send_menu_notification(dictionalized_menu_item)
+    except pika.exceptions.AMQPConnectionError as e:
+        print(f"Failed to send menu notification: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send menu notification: {str(e)}")
+
     return schemas.MenuChange.from_orm(db_menu_change)
 
 

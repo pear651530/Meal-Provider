@@ -22,6 +22,27 @@ RETRY_DELAY = 5  # seconds
 NOTIFICATION_EXCHANGE = "notifications"
 NOTIFICATION_ROUTING_KEY = "menu.notification"
 NOTIFICATION_QUEUE = "menu_notifications"
+ORDER_NOTIFICATION_ROUTING_KEY = "order.notification"
+ORDER_NOTIFICATION_QUEUE = "order_notifications"
+
+def get_rabbitmq_channel():
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+    parameters = pika.ConnectionParameters(
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+        credentials=credentials
+    )
+    connection = pika.BlockingConnection(parameters)
+    channel = connection.channel()
+    
+    # Declare exchange
+    channel.exchange_declare(
+        exchange=NOTIFICATION_EXCHANGE,
+        exchange_type='topic',
+        durable=True
+    )
+    
+    return channel, connection
 
 def get_connection():
     """Create a connection to RabbitMQ with retries"""
@@ -86,23 +107,38 @@ def setup_rabbitmq():
             logger.warning(f"Failed to set up RabbitMQ, retrying in {RETRY_DELAY} seconds...")
             time.sleep(RETRY_DELAY)
 
-def process_notification(ch, method, properties, body, db: Session):
+def process_notification_menu(ch, method, properties, body, db: Session):
     try:
         data = json.loads(body)
         required_fields = ["ZH_name", "EN_name", "price", "URL", "is_available"]
+        optional_fields = ["id"]
         if not all(field in data for field in required_fields):
             logger.error("Notification data is missing required fields")
             ch.basic_nack(delivery_tag=method.delivery_tag)
             return
-        menu_item = models.MenuItem(
-            ZH_name=data["ZH_name"],
-            EN_name=data["EN_name"],
-            price=data["price"],
-            URL=data["URL"],
-            is_available=data.get("is_available", True)
-        )
-        db.add(menu_item)
-        db.commit()
+        current_menu_id = data.get("id", -1)
+        #if not exists, add
+        if db.query(models.MenuItem).filter(models.MenuItem.id == current_menu_id).first() is not None:
+            menu_item = models.MenuItem(
+                ZH_name=data["ZH_name"],
+                EN_name=data["EN_name"],
+                price=data["price"],
+                URL=data["URL"],
+                is_available=data.get("is_available", True)
+            )
+            db.add(menu_item)
+            db.commit()
+        else:
+            #already exists, update
+            menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == current_menu_id).first()
+            if menu_item:
+                menu_item.ZH_name = data["ZH_name"]
+                menu_item.EN_name = data["EN_name"]
+                menu_item.price = data["price"]
+                menu_item.URL = data["URL"]
+                menu_item.is_available = data.get("is_available", True)
+                db.commit()
+
     except json.JSONDecodeError as e:
         logger.error(f"Failed to decode JSON: {e}")
         ch.basic_nack(delivery_tag=method.delivery_tag)
@@ -119,7 +155,7 @@ def consume_notifications(db: Session):
     channel.basic_qos(prefetch_count=1)  # Fair dispatch
     channel.basic_consume(
         queue=NOTIFICATION_QUEUE,
-        on_message_callback=lambda ch, method, properties, body: process_notification(ch, method, properties, body, db),
+        on_message_callback=lambda ch, method, properties, body: process_notification_menu(ch, method, properties, body, db),
         auto_ack=False
     )
 
@@ -140,3 +176,32 @@ def start_consumer_thread(db: Session):
     consumer_thread.start()
 
     return consumer_thread
+
+def send_order_notification(dining_record_item):
+    """
+    Send a menu item notification to RabbitMQ
+    """
+    channel, connection = get_rabbitmq_channel()
+    
+    notification = {
+        "user_id": dining_record_item["user_id"],
+        "order_id": dining_record_item["order_id"],
+        "menu_item_id": dining_record_item["menu_item_id"],
+        "menu_item_name": dining_record_item["menu_item_name"],
+        "total_amount": dining_record_item["total_amount"],
+        "payment_status": dining_record_item["payment_status"]
+    }
+    
+    # Publish notification to RabbitMQ
+    channel.basic_publish(
+        exchange=NOTIFICATION_EXCHANGE,
+        routing_key=ORDER_NOTIFICATION_ROUTING_KEY,
+        body=json.dumps(notification),
+        properties=pika.BasicProperties(
+            delivery_mode=2,  # make message persistent
+            content_type='application/json'
+        )
+    )
+    
+    # Close RabbitMQ connection
+    connection.close()

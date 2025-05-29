@@ -123,6 +123,15 @@ async def create_order(
             unit_price=db.query(models.MenuItem).get(item.menu_item_id).price
         )
         db.add(db_order_item)
+        dining_record_item_dict = {
+            "user_id": order.user_id,
+            "order_id": db_order.id,
+            "menu_item_id": item.menu_item_id,
+            "menu_item_name": db.query(models.MenuItem).get(item.menu_item_id).EN_name,
+            "total_amount": db_order_item.unit_price * item.quantity,
+            "payment_status": db_order.payment_status
+        }
+        send_order_notification(dining_record_item_dict) 
     
     db.commit()
     return db_order
