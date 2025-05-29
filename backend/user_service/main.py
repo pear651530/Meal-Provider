@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import models, schemas, database
 from .database import get_db
-from .rabbitmq import setup_rabbitmq, start_consumer_thread
+from .rabbitmq import setup_rabbitmq, start_consumer_thread, start_order_consumer_thread
 
 # Create FastAPI app
 app = FastAPI(title="User Service API")
@@ -38,24 +38,47 @@ API_KEY = "mealprovider_admin_key"  # Should be obtained from environment variab
 # Store the consumer thread
 consumer_thread = None
 
+# Add default super admin configuration
+DEFAULT_SUPER_ADMIN_USERNAME = "superadmin"
+DEFAULT_SUPER_ADMIN_PASSWORD = "superadmin123"  # Should be changed after first login
+order_consumer_thread = None
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
-    global consumer_thread
+    global consumer_thread, order_consumer_thread
     # Set up RabbitMQ
     setup_rabbitmq()
     # Get a database session
     db = next(get_db())
     try:
+        # Check if super admin exists, if not create one
+        super_admin = db.query(models.User).filter(models.User.role == "super_admin").first()
+        if not super_admin:
+            hashed_password = pwd_context.hash(DEFAULT_SUPER_ADMIN_PASSWORD)
+            super_admin = models.User(
+                username=DEFAULT_SUPER_ADMIN_USERNAME,
+                hashed_password=hashed_password,
+                role="super_admin"
+            )
+            db.add(super_admin)
+            db.commit()
+            print("Default super admin user created!")
+            print(f"Username: {DEFAULT_SUPER_ADMIN_USERNAME}")
+            print(f"Password: {DEFAULT_SUPER_ADMIN_PASSWORD}")
+            print("IMPORTANT: Please change the default password after first login!")
+        
         # Start the consumer thread
         consumer_thread = start_consumer_thread(db)
+        # Start the order consumer thread
+        order_consumer_thread = start_order_consumer_thread(db)
     finally:
         db.close()
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global consumer_thread
+    global consumer_thread, order_consumer_thread
     if consumer_thread and consumer_thread.is_alive():
         # The thread is a daemon thread, so it will be terminated when the main process exits
         pass
@@ -98,6 +121,16 @@ def get_current_admin(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized. Admin access required."
+        )
+    return current_user
+
+def get_current_super_admin(
+    current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized. Super Admin access required."
         )
     return current_user
 
@@ -399,3 +432,39 @@ def get_menu_item_rating(
         "good_ratio": good_ratio,
         "order_ids": order_ids
     }
+
+@app.put("/users/{user_id}/role", response_model=schemas.User)
+def update_user_role(
+    user_id: int,
+    new_role: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_super_admin)
+):
+    # Validate the new role
+    valid_roles = ["employee", "clerk", "admin"]
+    if new_role not in valid_roles:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+        )
+    
+    # Get the target user
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Prevent changing super_admin's role
+    if target_user.role == "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot modify super admin's role"
+        )
+    
+    # Update the role
+    target_user.role = new_role
+    db.commit()
+    db.refresh(target_user)
+    return target_user

@@ -97,6 +97,13 @@ def setup_rabbitmq():
                 routing_key=NOTIFICATION_ROUTING_KEY
             )
 
+            channel.queue_declare(queue=ORDER_NOTIFICATION_QUEUE, durable=True)
+            channel.queue_bind(
+                exchange=NOTIFICATION_EXCHANGE,
+                queue=ORDER_NOTIFICATION_QUEUE,
+                routing_key=ORDER_NOTIFICATION_ROUTING_KEY
+            )
+
             connection.close()  # Close the connection after setup
             logger.info("RabbitMQ setup completed successfully")
             return
@@ -118,7 +125,7 @@ def process_notification_menu(ch, method, properties, body, db: Session):
             return
         current_menu_id = data.get("id", -1)
         #if not exists, add
-        if db.query(models.MenuItem).filter(models.MenuItem.id == current_menu_id).first() is not None:
+        if db.query(models.MenuItem).filter(models.MenuItem.id == current_menu_id).first() is None:
             menu_item = models.MenuItem(
                 ZH_name=data["ZH_name"],
                 EN_name=data["EN_name"],
