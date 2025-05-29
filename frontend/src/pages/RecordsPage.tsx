@@ -4,6 +4,7 @@ import $ from "jquery";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
 
 interface Record {
     id: number;
@@ -17,43 +18,46 @@ interface Record {
 
 function RecordsPage(): React.ReactElement {
     const { t, i18n } = useTranslation();
+    const { user, token } = useAuth();
     const [records, setRecords] = useState<Record[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [activeRecordId, setActiveRecordId] = useState<number | null>(null);
     const [showCommentModal, setShowCommentModal] = useState(false);
     const [currentComment, setCurrentComment] = useState("");
 
+    // 嘗試從 user 物件中取得 user_id（後端 /users/me 回傳應有 user_id）
     useEffect(() => {
-        // 模擬載入資料
-        setTimeout(() => {
-            setRecords([
-                {
-                    id: 1,
-                    date: "2023-10-01",
-                    meal: "咖哩飯",
-                    price: 120,
-                    paid: true,
-                    rating: "like",
-                },
-                {
-                    id: 2,
-                    date: "2023-10-02",
-                    meal: "便當",
-                    price: 100,
-                    paid: false,
-                },
-                {
-                    id: 3,
-                    date: "2023-10-03",
-                    meal: "燒肉丼",
-                    price: 150,
-                    paid: true,
-                    rating: "dislike",
-                },
-            ]);
-            setLoading(false);
-        }, 1000);
-    }, []);
+        if (!user || !token) return;
+        // 兼容 user_id 或 id
+        const userId = (user as any).user_id ?? (user as any).id;
+        if (!userId) return;
+        setLoading(true);
+        fetch(`http://localhost:8000/users/${userId}/dining-records/`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("取得用餐紀錄失敗");
+                return res.json();
+            })
+            .then((data) => {
+                // 轉換 API 回傳格式到前端顯示格式
+                const mapped = data.map((item: any) => ({
+                    id: item.order_id,
+                    date: item.dining_date.split("T")[0],
+                    meal: item.menu_item_name,
+                    price: item.total_amount,
+                    paid: item.payment_status === "paid",
+                    rating: undefined, // 你可根據 item.reviews 進一步處理
+                    comment: undefined, // 你可根據 item.reviews 進一步處理
+                }));
+                setRecords(mapped);
+            })
+            .catch((err) => {
+                setRecords([]);
+                alert("載入用餐紀錄失敗");
+            })
+            .finally(() => setLoading(false));
+    }, [user, token]);
 
     useEffect(() => {
         // 初始化 DataTable
