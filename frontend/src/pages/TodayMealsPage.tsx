@@ -18,12 +18,12 @@ interface TodayMeal {
 }
 
 function TodayMealsPage(): React.ReactElement {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const [meals, setMeals] = useState<TodayMeal[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [expandedMeals, setExpandedMeals] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
-        // 模擬載入資料
         setTimeout(() => {
             setMeals([
                 {
@@ -35,6 +35,11 @@ function TodayMealsPage(): React.ReactElement {
                     comments: [
                         { recommended: true, text: "很好吃！" },
                         { recommended: false, text: "" },
+                        { recommended: true, text: "很好吃！" },
+                        { recommended: true, text: "很好吃！" },
+                        { recommended: true, text: "很好吃！" },
+                        { recommended: true, text: "很好吃！" },
+                        { recommended: true, text: "很好吃！" },
                     ],
                 },
                 {
@@ -60,43 +65,24 @@ function TodayMealsPage(): React.ReactElement {
                         { recommended: false, text: "份量太多" },
                     ],
                 },
-                {
-                    id: 4,
-                    name: "燒肉丼",
-                    price: 150,
-                    image: "https://th.bing.com/th/id/OIP.-MXZNrzYO4WCU3nIYWGYmQHaFa?w=245&h=180&c=7&r=0&o=7&cb=iwp2&pid=1.7&rm=3",
-                    todayMeal: true,
-                    comments: [
-                        { recommended: true, text: "份量超多" },
-                        { recommended: false, text: "份量太多" },
-                    ],
-                },
-                {
-                    id: 5,
-                    name: "燒肉丼",
-                    price: 150,
-                    image: "https://th.bing.com/th/id/OIP.-MXZNrzYO4WCU3nIYWGYmQHaFa?w=245&h=180&c=7&r=0&o=7&cb=iwp2&pid=1.7&rm=3",
-                    todayMeal: true,
-                    comments: [
-                        { recommended: true, text: "份量超多" },
-                        { recommended: false, text: "份量太多" },
-                    ],
-                },
-                {
-                    id: 6,
-                    name: "燒肉丼",
-                    price: 150,
-                    image: "https://th.bing.com/th/id/OIP.-MXZNrzYO4WCU3nIYWGYmQHaFa?w=245&h=180&c=7&r=0&o=7&cb=iwp2&pid=1.7&rm=3",
-                    todayMeal: true,
-                    comments: [
-                        { recommended: true, text: "份量超多" },
-                        { recommended: false, text: "份量太多" },
-                    ],
-                },
             ]);
             setLoading(false);
         }, 1000);
     }, []);
+
+    const calculateRecommendationRate = (comments: Comment[]): string => {
+        if (comments.length === 0) return "0%";
+        const recommendedCount = comments.filter((c) => c.recommended).length;
+        const percentage = Math.round((recommendedCount / comments.length) * 100);
+        return `${percentage}%`;
+    };
+
+    const toggleComments = (id: number) => {
+        setExpandedMeals((prev) => ({
+            ...prev,
+            [id]: !prev[id],
+        }));
+    };
 
     if (loading) return <p className="loading">{t("載入中...")}</p>;
 
@@ -122,25 +108,42 @@ function TodayMealsPage(): React.ReactElement {
                                             {meal.price} {t("元")}
                                         </span>
                                     </h3>
-                                    <ul className="comment-list">
-                                        {meal.comments.map((comment, index) => (
-                                            <li
-                                                key={index}
-                                                className={
-                                                    comment.recommended
-                                                        ? "recommended"
-                                                        : "not-recommended"
-                                                }
-                                            >
-                                                {comment.recommended
-                                                    ? t("👍 推薦")
-                                                    : t("👎 不推薦")}
-                                                {comment.text &&
-                                                    `：${comment.text}`}
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <p>{t("推薦比例")}：{calculateRecommendationRate(meal.comments)}</p>
+
+                                    {expandedMeals[meal.id] && (
+                                        <div className="comment-list-wrapper">
+                                            <ul className="comment-list">
+                                                {meal.comments
+                                                    .filter((comment) => comment.text.trim() !== "")
+                                                    .map((comment, index) => (
+                                                        <li
+                                                            key={index}
+                                                            className={
+                                                                comment.recommended
+                                                                    ? "recommended"
+                                                                    : "not-recommended"
+                                                            }
+                                                        >
+                                                            {comment.recommended ? t("👍 推薦") : t("👎 不推薦")}
+                                                            {`：${comment.text}`}
+                                                        </li>
+                                                    ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    <button
+                                        className="toggle-comments-btn"
+                                        onClick={() =>
+                                            setExpandedMeals((prev) => ({
+                                                ...prev,
+                                                [meal.id]: !prev[meal.id],
+                                            }))
+                                        }
+                                    >
+                                        {expandedMeals[meal.id] ? t("收合評論") : t("查看評論")}
+                                    </button>
                                 </div>
+
                             </div>
                         ))}
                 </div>
