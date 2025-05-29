@@ -8,6 +8,7 @@ import io
 from sqlalchemy import func
 from datetime import date, datetime, time ,timedelta
 from fastapi import Query
+import os
 
 from . import models, schemas, database
 from .database import get_db
@@ -33,14 +34,17 @@ async def startup_event():
     init_db()
     print("Database tables created successfully!")
     """Initialize services on startup"""
-    global consumer_thread
-    # Set up RabbitMQ
-    setup_rabbitmq()
+    
     # Get a database session
     db = next(get_db())
+    
     try:
-        # Start the consumer thread
-        consumer_thread = start_consumer_thread(db)
+        if os.getenv("IS_TEST") != "true":
+            global consumer_thread
+            # Set up RabbitMQ
+            setup_rabbitmq()
+            # Start the consumer thread
+            consumer_thread = start_consumer_thread(db)
     finally:
         db.close()
 
@@ -131,7 +135,8 @@ async def create_order(
             "total_amount": db_order_item.unit_price * item.quantity,
             "payment_status": db_order.payment_status
         }
-        send_order_notification(dining_record_item_dict) 
+        if os.getenv("IS_TEST") != "true":
+            send_order_notification(dining_record_item_dict) 
     
     db.commit()
     return db_order
