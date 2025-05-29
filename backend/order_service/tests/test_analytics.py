@@ -48,20 +48,20 @@ def db():
 
 def test_analytics(client):
     menu_item_data_1 = {
-        "ZH_name": "測試菜單項目 1",
-        "EN_name": "Test Menu Item 1",
+        "zh_name": "測試菜單項目 1",
+        "en_name": "Test Menu Item 1",
         "price": 10.0,
-        "URL": "http://example.com/image1.png",
+        "url": "http://example.com/image1.png",
         "is_available": True
     }
     response = client.post("/menu-items/", json=menu_item_data_1)
     assert response.status_code == 200
 
     menu_item_data_2 = {
-        "ZH_name": "測試菜單項目 2",
-        "EN_name": "Test Menu Item 2",
+        "zh_name": "測試菜單項目 2",
+        "en_name": "Test Menu Item 2",
         "price": 10.0,
-        "URL": "http://example.com/image2.png",
+        "url": "http://example.com/image2.png",
         "is_available": True
     }
     response = client.post("/menu-items/", json=menu_item_data_2)

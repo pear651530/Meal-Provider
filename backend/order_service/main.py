@@ -110,7 +110,7 @@ async def create_order(
         if not menu_item:
             raise HTTPException(status_code=404, detail=f"Menu item {item.menu_item_id} not found")
         if not menu_item.is_available:
-            raise HTTPException(status_code=400, detail=f"Menu item {menu_item.EN_name} is not available")
+            raise HTTPException(status_code=400, detail=f"Menu item {menu_item.en_name} is not available")
         total_amount += menu_item.price * item.quantity
 
     # 創建訂單
@@ -138,7 +138,7 @@ async def create_order(
             "user_id": order.user_id,
             "order_id": db_order.id,
             "menu_item_id": item.menu_item_id,
-            "menu_item_name": db.query(models.MenuItem).get(item.menu_item_id).EN_name,
+            "menu_item_name": db.query(models.MenuItem).get(item.menu_item_id).en_name,
             "total_amount": db_order_item.unit_price * item.quantity,
             "payment_status": db_order.payment_status
         }
@@ -207,14 +207,14 @@ def get_analytics(
         results = (
             db.query(
                 models.MenuItem.id.label("item_id"),
-                models.MenuItem.EN_name.label("item_name"),
+                models.MenuItem.en_name.label("item_name"),
                 func.sum(models.OrderItem.quantity).label("quantity"),
                 func.sum(models.OrderItem.unit_price * models.OrderItem.quantity).label("income")
             )
             .join(models.OrderItem, models.MenuItem.id == models.OrderItem.menu_item_id)
             .join(models.Order, models.OrderItem.order_id == models.Order.id)
             .filter(models.Order.order_date >= (datetime.utcnow() - timedelta(days=day_dict[report_period])))
-            .group_by(models.MenuItem.id, models.MenuItem.EN_name)
+            .group_by(models.MenuItem.id, models.MenuItem.en_name)
             .order_by(func.sum(models.OrderItem.quantity).desc())
             .all()
         )
