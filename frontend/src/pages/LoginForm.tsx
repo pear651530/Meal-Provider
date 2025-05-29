@@ -35,10 +35,15 @@ function LoginForm() {
             }
             const data = await response.json();
             localStorage.setItem("access_token", data.access_token);
-            setMessage(t("登入成功！"));
-            setTimeout(() => {
-                navigate("/TodayMeals");
-            }, 1000);
+            const user = await login(data.access_token); // 取得並同步全域 user 狀態
+            if (user) {
+                setMessage(t("登入成功！"));
+                setTimeout(() => {
+                    navigate("/TodayMeals");
+                }, 1000);
+            } else {
+                setMessage(t("登入失敗，無法取得使用者資訊"));
+            }
         } catch (error) {
             setMessage(t("登入時發生錯誤"));
         }
