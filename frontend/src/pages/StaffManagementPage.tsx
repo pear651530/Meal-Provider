@@ -21,12 +21,6 @@ function StaffManagementPage() {
     const { t } = useTranslation();
 
     useEffect(() => {
-        // 權限驗證：沒 token 或不是 super admin 直接導回登入頁
-        if (!token || !isSuperAdmin) {
-            navigate("/login", { replace: true });
-            return;
-        }
-
         // 獲取所有用戶
         const fetchUsers = async () => {
             try {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; // 匯入 context
 import LanguageSwitcher from "../components/LanguageSwitcher"; // 匯入語言切換器
@@ -11,7 +11,13 @@ function LoginForm() {
     const { t, i18n } = useTranslation();
 
     const navigate = useNavigate();
-    const { login } = useAuth(); // 使用 context
+    const { login, token, user } = useAuth(); // 使用 context
+
+    useEffect(() => {
+        if (token && user) {
+            navigate("/TodayMeals", { replace: true });
+        }
+    }, [token, user, navigate]);
 
     const handleLogin = async () => {
         if (!username || !password) {
