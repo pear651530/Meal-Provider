@@ -60,3 +60,20 @@ class Analytics(AnalyticsBase):
 
     class Config:
         from_attributes = True
+
+class UnpaidUser(BaseModel):
+    id: int
+    username: str
+    unpaid_amount: float
+
+    class Config:
+        from_attributes = True
+
+class AdminUser(BaseModel):
+    id: int
+    username: str
+    role: str
+    token: str
+
+    class Config:
+        from_attributes = True

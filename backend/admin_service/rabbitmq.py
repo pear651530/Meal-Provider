@@ -61,10 +61,17 @@ def send_notifications_to_users(unpaid_users):
     """
     Send notifications to multiple users
     """
+    if not isinstance(unpaid_users, list):
+        raise ValueError("unpaid_users must be a list")
+    
     for user in unpaid_users:
+        if not isinstance(user, dict):
+            raise ValueError("Each user must be a dictionary")
+        if not all(key in user for key in ["user_id", "user_name", "unpaidAmount"]):
+            raise ValueError("Each user must have user_id, user_name, and unpaidAmount fields")
         send_notification(user)
     
-    return len(unpaid_users) 
+    return len(unpaid_users)
 
 def send_menu_notification(menu_item):
     """
