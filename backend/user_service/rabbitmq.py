@@ -195,15 +195,19 @@ def consume_order_notifications(db: Session):
         connection.close()
 
 def process_order_notification(ch, method, properties, body, db: Session):
-    """Process a notification message"""
+    """Process an order notification and create a dining record"""
     try:
         data = json.loads(body)
+        logger.info(f"Received order notification: {data}")
         
         # Validate required fields
         required_fields = ['user_id', 'order_id', 'menu_item_id', 'menu_item_name', 'total_amount', 'payment_status']
         if not all(field in data for field in required_fields):
-            print(f"Invalid notification format: {data}")
+            logger.error(f"Invalid order notification format: {data}")
+            ch.basic_nack(delivery_tag=method.delivery_tag)
             return
+
+        # Create dining record
         dining_record = models.DiningRecord(
             user_id=data['user_id'],
             order_id=data['order_id'],
@@ -212,22 +216,28 @@ def process_order_notification(ch, method, properties, body, db: Session):
             total_amount=data['total_amount'],
             payment_status=data['payment_status']
         )
+        
         db.add(dining_record)
         db.commit()
+        logger.info(f"Created dining record for order {data['order_id']}")
 
-    except json.JSONDecodeError:
-        print(f"Invalid JSON format: {body}")
-    except Exception as e:
-        print(f"Error processing notification: {e}")
-    finally:
+        # Acknowledge the message
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON format: {body}")
+        ch.basic_nack(delivery_tag=method.delivery_tag)
+    except Exception as e:
+        logger.error(f"Error processing order notification: {e}")
+        ch.basic_nack(delivery_tag=method.delivery_tag)
+        db.rollback()
+
 def start_order_consumer_thread(db: Session):
-    """Start the RabbitMQ order consumer in a background thread"""
-    order_consumer_thread = threading.Thread(
+    """Start the order notification consumer in a background thread"""
+    consumer_thread = threading.Thread(
         target=consume_order_notifications,
         args=(db,),
         daemon=True
     )
-    order_consumer_thread.start()
-    return order_consumer_thread
+    consumer_thread.start()
+    return consumer_thread

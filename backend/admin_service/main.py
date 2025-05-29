@@ -39,7 +39,7 @@ async def verify_admin(
             raise HTTPException(status_code=401, detail="Invalid token")
 
         user_data = response.json()
-        if user_data["role"] != "admin":
+        if user_data["role"] not in ["admin", "super_admin"]:
             raise HTTPException(status_code=403, detail="Admin privileges required")
         return user_data
     except requests.RequestException:
