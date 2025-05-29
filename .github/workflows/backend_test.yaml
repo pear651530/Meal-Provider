@@ -54,7 +54,13 @@ jobs:
     - name: Run user_service tests
       run: |
         cd backend/user_service
-        pytest tests/ -v -k "not rabbitmq"
+        pytest tests/ -v -k "not rabbitmq and not super_admin"
+
+    # Run super admin tests
+    - name: Run super admin tests
+      run: |
+        cd backend/user_service
+        pytest tests/test_super_admin.py -v
 
   Admin-Service-Tests:
     runs-on: ubuntu-latest
