@@ -23,6 +23,8 @@ RETRY_DELAY = 5  # seconds
 NOTIFICATION_EXCHANGE = "notifications"
 NOTIFICATION_ROUTING_KEY = "billing.notification"
 NOTIFICATION_QUEUE = "billing_notifications"
+ORDER_NOTIFICATION_ROUTING_KEY = "order.notification"
+ORDER_NOTIFICATION_QUEUE = "order_notifications"
 
 def get_connection():
     """Create a connection to RabbitMQ with retries"""
@@ -75,6 +77,17 @@ def setup_rabbitmq():
                 exchange=NOTIFICATION_EXCHANGE,
                 queue=NOTIFICATION_QUEUE,
                 routing_key=NOTIFICATION_ROUTING_KEY
+            )
+
+            #declare queue to receive message sent from order_service
+            channel.queue_declare(
+                queue=ORDER_NOTIFICATION_QUEUE,
+                durable=True
+            )
+            channel.queue_bind(
+                exchange=NOTIFICATION_EXCHANGE,
+                queue=ORDER_NOTIFICATION_QUEUE,
+                routing_key=ORDER_NOTIFICATION_ROUTING_KEY
             )
 
             connection.close()
@@ -161,3 +174,60 @@ def start_consumer_thread(db: Session):
     )
     consumer_thread.start()
     return consumer_thread 
+
+def consume_order_notifications(db: Session):
+    """Consume order notifications from RabbitMQ"""
+    connection = get_connection()
+    channel = connection.channel()
+
+    # Set up consumer for order notifications
+    channel.basic_qos(prefetch_count=1)
+    channel.basic_consume(
+        queue=ORDER_NOTIFICATION_QUEUE,
+        on_message_callback=lambda ch, method, properties, body: process_order_notification(ch, method, properties, body, db)
+    )
+
+    try:
+        channel.start_consuming()
+    except KeyboardInterrupt:
+        channel.stop_consuming()
+    finally:
+        connection.close()
+
+def process_order_notification(ch, method, properties, body, db: Session):
+    """Process a notification message"""
+    try:
+        data = json.loads(body)
+        
+        # Validate required fields
+        required_fields = ['user_id', 'order_id', 'menu_item_id', 'menu_item_name', 'total_amount', 'payment_status']
+        if not all(field in data for field in required_fields):
+            print(f"Invalid notification format: {data}")
+            return
+        dining_record = models.DiningRecord(
+            user_id=data['user_id'],
+            order_id=data['order_id'],
+            menu_item_id=data['menu_item_id'],
+            menu_item_name=data['menu_item_name'],
+            total_amount=data['total_amount'],
+            payment_status=data['payment_status']
+        )
+        db.add(dining_record)
+        db.commit()
+
+    except json.JSONDecodeError:
+        print(f"Invalid JSON format: {body}")
+    except Exception as e:
+        print(f"Error processing notification: {e}")
+    finally:
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+def start_order_consumer_thread(db: Session):
+    """Start the RabbitMQ order consumer in a background thread"""
+    order_consumer_thread = threading.Thread(
+        target=consume_order_notifications,
+        args=(db,),
+        daemon=True
+    )
+    order_consumer_thread.start()
+    return order_consumer_thread
