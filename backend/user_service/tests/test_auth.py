@@ -1,7 +1,7 @@
 import pytest
 from fastapi import status
 
-def test_create_user(client):
+def test_create_user(client, test_db):
     response = client.post(
         "/users/",
         json={
