@@ -2,10 +2,10 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime
 class MenuItemCreate(BaseModel):
-    ZH_name: str
-    EN_name: str
+    zh_name: str
+    en_name: str
     price: float
-    URL: str
+    url: str
     is_available: bool = True
 
 class MenuItem(MenuItemCreate):

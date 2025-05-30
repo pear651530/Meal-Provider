@@ -1,3 +1,5 @@
+
+
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -16,55 +18,97 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import HTTPException, status
 from fastapi import Security
 from googletrans import Translator
+from fastapi.middleware.cors import CORSMiddleware
+import jwt
+
+app = FastAPI(title="Admin Service API")
+origins = [
+    "http://localhost:5173",  # 你的前端網址
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,           # 允許的來源清單
+    allow_credentials=True,          # 允許跨域時帶 Cookie
+    allow_methods=["*"],             # 允許所有 HTTP 方法 (GET, POST, etc)
+    allow_headers=["*"],             # 允許所有標頭
+    expose_headers=["*"]
+)
 USER_SERVICE_URL = "http://user-service:8000"
 ORDER_SERVICE_URL = "http://order-service:8000"
 
-app = FastAPI(title="Admin Service API")
-
-
-security = HTTPBearer()
-
+from fastapi import Request 
+from fastapi.responses import JSONResponse
+security = HTTPBearer(auto_error=False)
+# JWT configuration
+SECRET_KEY = "mealprovider"  # Should be obtained from environment variables in production
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 async def verify_admin(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    token = credentials.credentials  # 從 Authorization: Bearer <token> 拿到 token 字串
+    # 針對 OPTIONS 請求，直接返回，不進行 JWT 驗證
+    # CORSMiddleware 會處理其 CORS 標頭
+    if request.method == "OPTIONS":
+        return JSONResponse(content={"message": "CORS preflight handled by verify_admin"}, status_code=200)
 
-    try:
-        response = requests.get(
-            f"{USER_SERVICE_URL}/users/me",
-            headers={"Authorization": f"Bearer {token}"}
+    # 只有在非 OPTIONS 請求時，才進行憑證檢查
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization header"
         )
-        if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid token")
-
-        user_data = response.json()
-        if user_data["role"] not in ["admin", "super_admin"]:
-            raise HTTPException(status_code=403, detail="Admin privileges required")
-        return user_data
-    except requests.RequestException:
-        raise HTTPException(status_code=503, detail="User service unavailable")
-
-
+    
+    token = credentials.credentials
+    
+    try:
+        # Decode and verify the JWT token directly
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Check if token is expired
+        exp = payload.get("exp")
+        if exp is None or datetime.utcnow().timestamp() > exp:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired"
+            )
+        
+        # Get role from token payload
+        role = payload.get("role")
+        print(f"Decoded role: {role}")  # Debugging line to check role
+        if role != "admin" and role != "super_admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin privileges required"
+            )    
+        return payload
+        
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
 
 translator = Translator()
 
-async def validate_and_translate_names(ZH_name: str, EN_name: str) -> tuple[str, str]:
+async def validate_and_translate_names(zh_name: str, en_name: str) -> tuple[str, str]:
     """
-    檢查 ZH_name 與 EN_name 是否同時為空，若其中一方為空白，則用翻譯補上。
+    檢查 zh_name 與 en_name 是否同時為空，若其中一方為空白，則用翻譯補上。
 
-    :param ZH_name: 中文名稱（可空白）
-    :param EN_name: 英文名稱（可空白）
-    :return: 傳回補齊後的 (ZH_name, EN_name)
+    :param zh_name: 中文名稱（可空白）
+    :param en_name: 英文名稱（可空白）
+    :return: 傳回補齊後的 (zh_name, en_name)
     :raises HTTPException: 兩者同時空白時拋錯
     """
-    zh = ZH_name.strip() if isinstance(ZH_name, str) else ""
-    en = EN_name.strip() if isinstance(EN_name, str) else ""
+    zh = zh_name.strip() if isinstance(zh_name, str) else ""
+    en = en_name.strip() if isinstance(en_name, str) else ""
 
     if zh == "" and en == "":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one of ZH_name or EN_name must be provided."
+            detail="At least one of zh_name or en_name must be provided."
         )
 
     if zh == "":
@@ -76,6 +120,9 @@ async def validate_and_translate_names(ZH_name: str, EN_name: str) -> tuple[str,
         en = result.text
 
     return zh, en
+@app.get("/test/")
+async def test_endpoint():
+    return {"message": "Test successful!"}
 
 # 取得所有菜品
 @app.get("/menu-items/", response_model=List[schemas.MenuItem])
@@ -113,10 +160,10 @@ async def hard_delete_menu_item(
 
     # 記錄刪除前的狀態作為 old_values
     old_values_for_db = {
-        "ZH_name": menu_item.ZH_name,
-        "EN_name": menu_item.EN_name,
+        "zh_name": menu_item.zh_name,
+        "en_name": menu_item.en_name,
         "price": menu_item.price,
-        "URL": menu_item.URL,
+        "url": menu_item.url,
         "is_available": menu_item.is_available
     }
 
@@ -179,14 +226,14 @@ async def toggle_menu_item_availability(
 async def create_menu_item(
     menu_item: schemas.MenuItemCreate,
     db: Session = Depends(get_db),
-    admin: dict = Security(verify_admin) #至關掉FOR TEST
+   # admin: dict = Security(verify_admin) #至關掉FOR TEST
 ) -> schemas.MenuItem:
     """
     新增一個新的菜單項目，並記錄變更。
     """
-    zh, en =await validate_and_translate_names(menu_item.ZH_name, menu_item.EN_name)
-    menu_item.ZH_name = zh
-    menu_item.EN_name = en
+    zh, en =await validate_and_translate_names(menu_item.zh_name, menu_item.en_name)
+    menu_item.zh_name = zh
+    menu_item.en_name = en
     # 將 Pydantic 模型轉換為 SQLAlchemy 模型
     db_menu_item = models.MenuItem(**menu_item.dict())
     db.add(db_menu_item)
@@ -201,7 +248,7 @@ async def create_menu_item(
         change_type="add",
         old_values=None, # 新增時沒有舊值
         new_values=new_values_for_db,
-        changed_by=admin["id"]
+        changed_by=1#admin["id"]
     )
     db.add(db_menu_change)
     db.commit()
@@ -217,10 +264,10 @@ async def create_menu_item(
         # menu_item to dict
         # send in rabbitmq with serialized schemas.MenuItemCreate
         dictionalized_menu_item = {
-            "zh_name": menu_item.ZH_name,
-            "en_name": menu_item.EN_name,
+            "zh_name": menu_item.zh_name,
+            "en_name": menu_item.en_name,
             "price": menu_item.price,
-            "url": menu_item.URL,
+            "url": menu_item.url,
             "is_available": menu_item.is_available
         }
         send_menu_notification(dictionalized_menu_item)
@@ -252,19 +299,19 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
     
-    new_ZH = menu_change_data.new_values.get("ZH_name", menu_item.ZH_name)
-    new_EN = menu_change_data.new_values.get("EN_name", menu_item.EN_name)
+    new_ZH = menu_change_data.new_values.get("zh_name", menu_item.zh_name)
+    new_EN = menu_change_data.new_values.get("en_name", menu_item.en_name)
     zh, en = await validate_and_translate_names(new_ZH, new_EN)
     # 更新回 new_values
-    menu_change_data.new_values["ZH_name"] = zh
-    menu_change_data.new_values["EN_name"] = en
+    menu_change_data.new_values["zh_name"] = zh
+    menu_change_data.new_values["en_name"] = en
     # 記錄實際被修改的欄位及其新值
     new_values_for_db = {}
     # 記錄被修改欄位的舊值
     old_values_for_db = {}
 
     # 遍歷所有可能的 MenuItem 欄位，並檢查 new_values 中是否有對應的更新
-    update_fields = ["ZH_name", "EN_name", "price", "URL", "is_available"]
+    update_fields = ["zh_name", "en_name", "price", "url", "is_available"]
     
     for field in update_fields:
         # 檢查 new_values 中是否存在該欄位，並且值與當前資料庫中的值不同
@@ -296,14 +343,14 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     # 待改:待確認MQ的send_menu_notification要送什麼格式    
     # 7. 通知訂單服務
     #try:
-    #   order_service_url = f"http://order-service:8000/menu-items/{menu_item.id}"
+    #   order_service_URL = f"http://order-service:8000/menu-items/{menu_item.id}"
     #    updated_menu_item_data = {
     #        "name": menu_item.name,
     #        "description": menu_item.description,
     #        "price": menu_item.price,
     #        "category": menu_item.category,
     #    }
-        # response = requests.put(order_service_url, json=updated_menu_item_data)
+        # response = requests.put(order_service_URL, json=updated_menu_item_data)
         # response.raise_for_status()
         # ==== Try to change to MQ ====
     #    send_menu_notification()
@@ -315,10 +362,10 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
         # 將菜單項目轉換為字典格式，並發送到 RabbitMQ
         dictionalized_menu_item = {
             "id": menu_item.id,
-            "zh_name": menu_item.ZH_name,
-            "en_name": menu_item.EN_name,
+            "zh_name": menu_item.zh_name,
+            "en_name": menu_item.en_name,
             "price": menu_item.price,
-            "url": menu_item.URL,
+            "url": menu_item.url,
             "is_available": menu_item.is_available
         }
         send_menu_notification(dictionalized_menu_item)
