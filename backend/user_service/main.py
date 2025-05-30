@@ -433,6 +433,64 @@ def get_menu_item_rating(
         "order_ids": order_ids
     }
 
+@app.get("/reviews/{menu_item_id}", response_model=List[schemas.Review])
+def get_menu_item_reviews(
+    menu_item_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # Get all dining records for this menu item
+    dining_records = db.query(models.DiningRecord).filter(
+        models.DiningRecord.menu_item_id == menu_item_id
+    ).all()
+    
+    if not dining_records:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    # Get all reviews for these dining records
+    dining_record_ids = [dr.id for dr in dining_records]
+    reviews = db.query(models.Review).filter(
+        models.Review.dining_record_id.in_(dining_record_ids)
+    ).order_by(models.Review.created_at.desc()).all()
+    
+    return reviews
+
+@app.get("/comments/{menu_item_id}", response_model=List[schemas.MenuItemComment])
+def get_menu_item_comments(
+    menu_item_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # Get all dining records for this menu item
+    dining_records = db.query(models.DiningRecord).filter(
+        models.DiningRecord.menu_item_id == menu_item_id
+    ).all()
+    
+    if not dining_records:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    # Get all reviews with comments for these dining records
+    dining_record_ids = [dr.id for dr in dining_records]
+    reviews = db.query(models.Review).filter(
+        models.Review.dining_record_id.in_(dining_record_ids),
+        models.Review.comment.isnot(None),
+        models.Review.comment != ""
+    ).order_by(models.Review.created_at.desc()).all()
+    
+    # Get user information for each review
+    comments = []
+    for review in reviews:
+        user = db.query(models.User).filter(models.User.id == review.user_id).first()
+        comments.append({
+            "comment": review.comment,
+            "rating": review.rating,
+            "created_at": review.created_at,
+            "user_id": review.user_id,
+            "username": user.username if user else None
+        })
+    
+    return comments
+
 @app.put("/users/{user_id}/role", response_model=schemas.User)
 def update_user_role(
     user_id: int,
