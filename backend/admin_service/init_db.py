@@ -8,7 +8,7 @@ from models import MenuItem, MenuChange, BillingNotification, Analytics
 
 def init_db():
     print("Creating database tables...")
-    # Base.metadata 會在導入上述模型時自動收集這些模型定義的表
+    Base.metadata.drop_all(bind=engine)  # 清除舊的表,for testing stage 
     Base.metadata.create_all(bind=engine)
     print("Database tables created successfully!")
 
