@@ -9,35 +9,43 @@ function Register() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [message, setMessage] = useState("");
-    const [isValidEmployee, setIsValidEmployee] = useState(false);
+    // const [isValidEmployee, setIsValidEmployee] = useState(false);
 
     const navigate = useNavigate();
 
-    const handleCheckEmployeeId = async () => {
-        if (!employeeId) {
-            setMessage(t("請輸入員工號"));
-            return;
-        }
+    // const handleCheckEmployeeId = async () => {
+    //     if (!employeeId) {
+    //         setMessage(t("請輸入員工號"));
+    //         return;
+    //     }
 
-        try {
-            // Replace with your actual API endpoint
-            const response = await fetch(`/api/check-employee/${employeeId}`);
-            const data = await response.json();
+    //     try {
+    //         // Replace with your actual API endpoint
+    //         const response = await fetch(
+    //             `http://localhost:8000/api/check-employee/${employeeId}`,
+    //             {
+    //                 method: "GET",
+    //                 headers: {
+    //                     "Content-Type": "application/json",
+    //                 },
+    //             }
+    //         );
+    //         const data = await response.json();
 
-            if (data.exists) {
-                setIsValidEmployee(true);
-                setMessage(t("員工號驗證成功！"));
-            } else {
-                setMessage(t("無效的員工號，請確認後重試"));
-                setIsValidEmployee(false);
-            }
-        } catch (error) {
-            console.error(t("驗證員工號時出錯:"), error);
-            setMessage(t("驗證員工號時發生錯誤，請稍後再試"));
-        }
-    };
+    //         if (data.exists) {
+    //             setIsValidEmployee(true);
+    //             setMessage(t("員工號驗證成功！"));
+    //         } else {
+    //             setMessage(t("無效的員工號，請確認後重試"));
+    //             setIsValidEmployee(false);
+    //         }
+    //     } catch (error) {
+    //         console.error(t("驗證員工號時出錯:"), error);
+    //         setMessage(t("驗證員工號時發生錯誤，請稍後再試"));
+    //     }
+    // };
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         if (!employeeId || !password || !confirmPassword) {
             setMessage(t("請填寫所有欄位"));
             return;
@@ -48,17 +56,63 @@ function Register() {
             return;
         }
 
-        if (!isValidEmployee) {
-            setMessage(t("請先驗證員工號"));
+        // if (!isValidEmployee) {
+        //     setMessage(t("請先驗證員工號"));
+        //     return;
+        // }
+
+        try {
+            const response = await fetch("http://localhost:8000/users/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: employeeId,
+                    password: password,
+                }),
+            });
+            if (!response.ok) {
+                setMessage(t("註冊失敗，請稍後再試"));
+                return;
+            }
+            setMessage(t("註冊成功！即將跳轉至登入頁面"));
+            setTimeout(() => {
+                navigate("/Login");
+            }, 2000);
+        } catch (error) {
+            setMessage(t("註冊時發生錯誤"));
+        }
+    };
+
+    // 登入取得 token
+    const handleGetToken = async () => {
+        if (!employeeId || !password) {
+            setMessage(t("請輸入員工號和密碼"));
             return;
         }
-
-        // Here you would typically make an API call to register the user
-
-        setMessage(t("註冊成功！即將跳轉至登入頁面"));
-        setTimeout(() => {
-            navigate("/Login");
-        }, 2000);
+        try {
+            const response = await fetch("http://localhost:8000/token", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                    username: employeeId,
+                    password: password,
+                }),
+            });
+            if (!response.ok) {
+                setMessage(t("登入失敗，請檢查帳號密碼"));
+                return;
+            }
+            const data = await response.json();
+            setMessage("Token: " + data.access_token);
+            // 你可以把 token 存到 localStorage 或 context
+            // localStorage.setItem('token', data.access_token);
+        } catch (error) {
+            setMessage(t("取得 token 時發生錯誤"));
+        }
     };
 
     return (
@@ -131,17 +185,18 @@ function Register() {
                         value={employeeId}
                         onChange={(e) => setEmployeeId(e.target.value)}
                         style={{
-                            width: "65%",
+                            width: "100%",
                             padding: "12px",
                             border: "1px solid #444444",
                             borderRadius: "8px",
-                            marginRight: "10px",
+                            // marginRight: "10px",
                             backgroundColor: "#3a3a3a",
                             color: "#e0e0e0",
                         }}
                     />
+                    {/*
                     <button
-                        onClick={handleCheckEmployeeId}
+                        // onClick={handleCheckEmployeeId}
                         style={{
                             width: "35%",
                             padding: "8px",
@@ -154,6 +209,7 @@ function Register() {
                     >
                         {t("驗證員工號")}
                     </button>
+                    */}
                 </div>
 
                 <input
@@ -204,6 +260,63 @@ function Register() {
                 >
                     {t("註冊")}
                 </button>
+                {/*<button
+                    onClick={handleGetToken}
+                    style={{
+                        width: "100%",
+                        padding: "12px",
+                        backgroundColor: "#007bff",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        marginTop: "10px",
+                    }}
+                >
+                    取得 Token (測試)
+                </button>
+                <button
+                    onClick={async () => {
+                        if (!employeeId || !password) {
+                            setMessage(t("請輸入員工號和密碼"));
+                            return;
+                        }
+                        try {
+                            const response = await fetch(
+                                "http://localhost:8000/users/",
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        username: employeeId,
+                                        password: password,
+                                    }),
+                                }
+                            );
+                            if (!response.ok) {
+                                setMessage(t("建立帳號失敗"));
+                                return;
+                            }
+                            setMessage(t("建立帳號成功"));
+                        } catch (error) {
+                            setMessage(t("建立帳號時發生錯誤"));
+                        }
+                    }}
+                    style={{
+                        width: "100%",
+                        padding: "12px",
+                        backgroundColor: "#28a745",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        marginTop: "10px",
+                    }}
+                >
+                    建立帳號 (測試)
+                </button>*/}
 
                 {message && (
                     <p

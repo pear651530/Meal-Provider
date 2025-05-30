@@ -16,11 +16,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import HTTPException, status
 from fastapi import Security
 from googletrans import Translator
-
 from fastapi.middleware.cors import CORSMiddleware
-
-USER_SERVICE_URL = "http://user-service:8000"
-ORDER_SERVICE_URL = "http://order-service:8000"
+import jwt
 
 app = FastAPI(title="Admin Service API")
 origins = [
@@ -145,6 +142,7 @@ async def get_menu_item(
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
     return schemas.MenuItem.from_orm(menu_item)
+
 # 硬刪除菜品 (將其從資料庫完全移除)
 @app.delete("/menu-items/{menu_item_id}/hard-delete", status_code=status.HTTP_200_OK)
 async def hard_delete_menu_item(
@@ -156,7 +154,6 @@ async def hard_delete_menu_item(
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
 
-    # 記錄刪除前的狀態作為 old_values
     old_values_for_db = {
         "zh_name": menu_item.zh_name,
         "en_name": menu_item.en_name,
@@ -165,23 +162,30 @@ async def hard_delete_menu_item(
         "is_available": menu_item.is_available
     }
 
-    db.delete(menu_item)
-    db.commit()
+    admin_role_to_id_map = {
+        "admin": 1,
+        "super_admin": 2,
+    }
+    user_role_from_jwt = admin.get("role")
+    changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0)
 
-    # 創建 MenuChange 記錄
+    # 🔼 先記錄變更
     db_menu_change = models.MenuChange(
-        menu_item_id=menu_item_id,
-        change_type="hard_remove", # 變更類型改為 'hard_remove' 以示區別
+        menu_item_id=menu_item.id,  # 用 menu_item.id 而不是 menu_item_id（以防參數被亂傳）
+        change_type="hard_remove",
         old_values=old_values_for_db,
-        new_values={}, # 刪除時新值為空
-        changed_by=admin["id"]
+        new_values={},
+        changed_by=changed_by_id
     )
     db.add(db_menu_change)
     db.commit()
     db.refresh(db_menu_change)
 
-    return {"message": f"Menu item with id {menu_item_id} hard deleted successfully and change recorded."}
+    # 🔽 然後才刪除 menu_item
+    db.delete(menu_item)
+    db.commit()
 
+    return {"message": f"Menu item with id {menu_item_id} hard deleted successfully and change recorded."}
 # 上架/下架菜單項目
 @app.put("/menu-items/{menu_item_id}/toggle-availability", response_model=schemas.MenuItem)
 async def toggle_menu_item_availability(
@@ -388,14 +392,14 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     # 待改:待確認MQ的send_menu_notification要送什麼格式    
     # 7. 通知訂單服務
     #try:
-    #   order_service_url = f"http://order-service:8000/menu-items/{menu_item.id}"
+    #   order_service_URL = f"http://order-service:8000/menu-items/{menu_item.id}"
     #    updated_menu_item_data = {
     #        "name": menu_item.name,
     #        "description": menu_item.description,
     #        "price": menu_item.price,
     #        "category": menu_item.category,
     #    }
-        # response = requests.put(order_service_url, json=updated_menu_item_data)
+        # response = requests.put(order_service_URL, json=updated_menu_item_data)
         # response.raise_for_status()
         # ==== Try to change to MQ ====
     #    send_menu_notification()

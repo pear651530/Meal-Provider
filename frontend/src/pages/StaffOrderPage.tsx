@@ -15,7 +15,7 @@ interface SelectedMeal {
     payment: "cash" | "debt";
 }
 
-function StaffOrderPage(): JSX.Element {
+function StaffOrderPage() {
     const { t, i18n } = useTranslation();
     const [employeeId, setEmployeeId] = useState("");
     const [meals, setMeals] = useState<TodayMeal[]>([]);
@@ -62,28 +62,70 @@ function StaffOrderPage(): JSX.Element {
         }
     };
 
-    const handleSubmit = () => {
+    // const handleSubmit = () => {
+    //     if (!employeeId || !selectedMeal) {
+    //         alert(t("請輸入員工 ID 並選擇一項餐點"));
+    //         return;
+    //     }
+
+    //     const orderSummary = {
+    //         employeeId,
+    //         meals: [
+    //             {
+    //                 id: selectedMeal.meal.id,
+    //                 name: selectedMeal.meal.name,
+    //                 payment: selectedMeal.payment,
+    //             },
+    //         ],
+    //     };
+
+    //     console.log(t("送出訂單："), orderSummary);
+    //     alert(t("訂單已送出！"));
+    //     setSelectedMeal(null);
+    //     setEmployeeId("");
+    // };
+    const handleSubmit = async () => {
         if (!employeeId || !selectedMeal) {
             alert(t("請輸入員工 ID 並選擇一項餐點"));
             return;
         }
-
-        const orderSummary = {
-            employeeId,
-            meals: [
+    
+        const orderRequest = {
+            user_id: parseInt(employeeId),
+            payment_method: selectedMeal.payment,
+            payment_status: (selectedMeal.payment == "debt")? "unpaid": "paid",
+            items: [
                 {
-                    id: selectedMeal.meal.id,
-                    name: selectedMeal.meal.name,
-                    payment: selectedMeal.payment,
+                    menu_item_id: selectedMeal.meal.id,
+                    quantity: 1,
                 },
             ],
         };
-
-        console.log(t("送出訂單："), orderSummary);
-        alert(t("訂單已送出！"));
-        setSelectedMeal(null);
-        setEmployeeId("");
-    };
+    
+        try {
+            const response = await fetch("http://localhost:8001/orders/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(orderRequest),
+            });
+    
+            if (!response.ok) {
+                throw new Error("訂單送出失敗");
+            }
+    
+            const result = await response.json();
+            console.log(t("送出訂單成功："), result);
+    
+            alert(t("訂單已送出！"));
+            setSelectedMeal(null);
+            setEmployeeId("");
+        } catch (error) {
+            console.error("送出訂單錯誤", error);
+            alert(t("送出訂單失敗，請稍後再試"));
+        }
+    };    
 
     if (loading) return <p className="staffOrder-loading">{t("載入中...")}</p>;
 
