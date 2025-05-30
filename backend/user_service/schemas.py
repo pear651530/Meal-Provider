@@ -97,3 +97,13 @@ class MenuItemRatingWithOrders(BaseModel):
 
     class Config:
         from_attributes = True
+
+class MenuItemComment(BaseModel):
+    comment: str
+    rating: str
+    created_at: datetime
+    user_id: int
+    username: Optional[str]
+
+    class Config:
+        from_attributes = True

@@ -327,3 +327,169 @@ def test_get_menu_item_rating_no_reviews(client, test_user_token, test_user, db)
     assert data["total_reviews"] == 0  # No reviews
     assert data["good_reviews"] == 0
     assert data["good_ratio"] == 0 
+
+def test_get_menu_item_reviews(client, test_user_token, test_user, db):
+    # Clean up any existing reviews and dining records
+    db.query(Review).delete()
+    db.query(DiningRecord).delete()
+    db.commit()
+    
+    # Create test data
+    menu_item_id = 1
+    menu_item_name = "Test Menu Item"
+    
+    # Create first dining record and review
+    dining_record1 = DiningRecord(
+        user_id=test_user.id,
+        order_id=1,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=100.0,
+        payment_status="paid"
+    )
+    db.add(dining_record1)
+    db.commit()
+    db.refresh(dining_record1)
+    
+    review1 = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record1.id,
+        rating="good",
+        comment="Great meal!"
+    )
+    db.add(review1)
+    
+    # Create second dining record and review
+    dining_record2 = DiningRecord(
+        user_id=test_user.id,
+        order_id=2,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=150.0,
+        payment_status="paid"
+    )
+    db.add(dining_record2)
+    db.commit()
+    db.refresh(dining_record2)
+    
+    review2 = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record2.id,
+        rating="bad",
+        comment="Not so good"
+    )
+    db.add(review2)
+    db.commit()
+    
+    # Test getting reviews for the menu item
+    response = client.get(
+        f"/reviews/{menu_item_id}",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    
+    # Verify the reviews are returned in descending order by created_at
+    assert data[0]["rating"] == "bad"
+    assert data[0]["comment"] == "Not so good"
+    assert data[1]["rating"] == "good"
+    assert data[1]["comment"] == "Great meal!"
+    
+    # Test getting reviews for non-existent menu item
+    response = client.get(
+        "/reviews/999",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Menu item not found"
+
+def test_get_menu_item_comments(client, test_user_token, test_user, db):
+    # Clean up any existing reviews and dining records
+    db.query(Review).delete()
+    db.query(DiningRecord).delete()
+    db.commit()
+    
+    # Create test data
+    menu_item_id = 1
+    menu_item_name = "Test Menu Item"
+    
+    # Create first dining record and review with comment
+    dining_record1 = DiningRecord(
+        user_id=test_user.id,
+        order_id=1,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=100.0,
+        payment_status="paid"
+    )
+    db.add(dining_record1)
+    db.commit()
+    db.refresh(dining_record1)
+    
+    review1 = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record1.id,
+        rating="good",
+        comment="Great meal!"
+    )
+    db.add(review1)
+    
+    # Create second dining record and review with empty comment
+    dining_record2 = DiningRecord(
+        user_id=test_user.id,
+        order_id=2,
+        menu_item_id=menu_item_id,
+        menu_item_name=menu_item_name,
+        total_amount=150.0,
+        payment_status="paid"
+    )
+    db.add(dining_record2)
+    db.commit()
+    db.refresh(dining_record2)
+    
+    review2 = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record2.id,
+        rating="bad",
+        comment=""  # Empty comment
+    )
+    db.add(review2)
+    db.commit()
+    
+    # Test getting comments for the menu item
+    response = client.get(
+        f"/comments/{menu_item_id}",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1  # Only one review has a non-empty comment
+    
+    # Verify the comment data
+    assert data[0]["comment"] == "Great meal!"
+    assert data[0]["rating"] == "good"
+    assert data[0]["user_id"] == test_user.id
+    assert data[0]["username"] == test_user.username
+    
+    # Test getting comments for non-existent menu item
+    response = client.get(
+        "/comments/999",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Menu item not found"
+
+def test_get_menu_item_reviews_unauthorized(client):
+    # Test accessing reviews endpoint without authentication
+    response = client.get("/reviews/1")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+def test_get_menu_item_comments_unauthorized(client):
+    # Test accessing comments endpoint without authentication
+    response = client.get("/comments/1")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated" 
