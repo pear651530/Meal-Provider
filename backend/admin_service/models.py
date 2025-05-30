@@ -22,9 +22,9 @@ class MenuItem(Base):
     """
     __tablename__ = "menu_items"
     id = Column(Integer, primary_key=True, index=True)
-    ZH_name = Column(String, nullable=False)
-    EN_name = Column(String, nullable=False)
-    URL = Column(String, nullable=True)     
+    zh_name = Column(String, nullable=False)
+    en_name = Column(String, nullable=False)
+    url = Column(String, nullable=True)     
     is_available = Column(Boolean, default=True) # 是否可用，預設為 True
     price = Column(Float, nullable=False)   
     created_at = Column(DateTime, default=datetime.utcnow) # 創建時間
@@ -93,4 +93,3 @@ class Analytics(Base):
     report_date = Column(DateTime)
     data = Column(JSON)
     generated_at = Column(DateTime, default=datetime.utcnow)
-

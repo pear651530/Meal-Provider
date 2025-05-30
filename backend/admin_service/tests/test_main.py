@@ -35,6 +35,7 @@ engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="session", autouse=True)
@@ -59,15 +60,10 @@ def db():
 
 
 @pytest.fixture(scope="function")
-def client(db):
-    # 覆寫 get_db 依賴
+def client(db):  # db 是共用的 fixture
     def override_get_db():
-        try:
-            yield db
-        finally:
-            db.close()
-    
-    # Mock verify_admin 函數
+        yield db  # 不要 close！否則資料在刪除後就查不到
+
     async def override_verify_admin(token: str = "test-token"):
         return {"id": 1, "username": "admin_test", "role": "admin", "token": token}
 
@@ -76,8 +72,7 @@ def client(db):
 
     with TestClient(app) as test_client:
         yield test_client
-    
-    # 清除依賴覆寫，確保其他可能不在這個測試模組中的測試不受影響
+
     app.dependency_overrides.clear()
 
 
@@ -113,17 +108,17 @@ def test_get_all_menu_items_empty(client):
 def test_create_menu_item(client, db):
     """測試創建菜單項目。"""
     menu_item_data = {
-        "ZH_name": "紅燒肉",
-        "EN_name": "Braised Pork",
+        "zh_name": "紅燒肉",
+        "en_name": "Braised Pork",
         "price": 120.5,
-        "URL": "http://example.com/braised_pork.jpg",
+        "url": "http://example.com/braised_pork.jpg",
         "is_available": True
     }
     response = client.post("/menu-items/", json=menu_item_data)
     assert response.status_code == 201
     created_item = response.json()
-    assert created_item["ZH_name"] == "紅燒肉"
-    assert created_item["EN_name"] == "Braised Pork"
+    assert created_item["zh_name"] == "紅燒肉"
+    assert created_item["en_name"] == "Braised Pork"
     assert created_item["price"] == 120.5
     assert "id" in created_item
     assert "created_at" in created_item
@@ -131,21 +126,21 @@ def test_create_menu_item(client, db):
     # 驗證資料庫中是否存在該項目
     item_in_db = db.query(MenuItem).filter(MenuItem.id == created_item["id"]).first()
     assert item_in_db is not None
-    assert item_in_db.ZH_name == "紅燒肉"
+    assert item_in_db.zh_name == "紅燒肉"
 
     # 驗證 MenuChange 記錄
     change_in_db = db.query(MenuChange).filter(MenuChange.menu_item_id == created_item["id"]).first()
     assert change_in_db is not None
     assert change_in_db.change_type == "add"
     assert change_in_db.old_values is None
-    assert change_in_db.new_values["ZH_name"] == "紅燒肉"
+    assert change_in_db.new_values["zh_name"] == "紅燒肉"
 
 
 def test_get_menu_item_by_id(client, db):
     """測試根據 ID 獲取單一菜單項目。"""
     # 先創建一個項目
     menu_item = MenuItem(
-        ZH_name="雞腿便當", EN_name="Chicken Leg Bento", price=95.0, URL="url_chicken", is_available=True
+        zh_name="雞腿便當", en_name="Chicken Leg Bento", price=95.0, url="url_chicken", is_available=True
     )
     db.add(menu_item)
     db.commit()
@@ -155,7 +150,7 @@ def test_get_menu_item_by_id(client, db):
     assert response.status_code == 200
     retrieved_item = response.json()
     assert retrieved_item["id"] == menu_item.id
-    assert retrieved_item["ZH_name"] == "雞腿便當"
+    assert retrieved_item["zh_name"] == "雞腿便當"
 
 def test_get_menu_item_not_found(client):
     """測試獲取不存在的菜單項目。"""
@@ -167,7 +162,7 @@ def test_update_menu_item(client, db):
     """測試更新菜單項目並記錄變更。"""
     # 創建一個初始菜單項目
     original_item = MenuItem(
-        ZH_name="魚香茄子", EN_name="Fish Flavored Eggplant", price=150.0, URL="url_eggplant", is_available=True
+        zh_name="魚香茄子", en_name="Fish Flavored Eggplant", price=150.0, url="url_eggplant", is_available=True
     )
     db.add(original_item)
     db.commit()
@@ -215,7 +210,7 @@ def test_update_menu_item(client, db):
 def test_update_menu_item_no_changes(client, db):
     """測試更新菜單項目但沒有任何變更。"""
     original_item = MenuItem(
-        ZH_name="測試菜品", EN_name="Test Dish", price=100.0, URL="url_test", is_available=True
+        zh_name="測試菜品", en_name="Test Dish", price=100.0, url="url_test", is_available=True
     )
     db.add(original_item)
     db.commit()
@@ -226,10 +221,10 @@ def test_update_menu_item_no_changes(client, db):
         "menu_item_id": original_item.id,
         "change_type": "update",
         "new_values": {
-            "ZH_name": "測試菜品",
-            "EN_name": "Test Dish",
+            "zh_name": "測試菜品",
+            "en_name": "Test Dish",
             "price": 100.0,
-            "URL": "url_test",
+            "url": "url_test",
             "is_available": True
         }
     }
@@ -240,25 +235,26 @@ def test_update_menu_item_no_changes(client, db):
 def test_hard_delete_menu_item(client, db):
     """測試硬刪除菜單項目。"""
     menu_item_to_delete = MenuItem(
-        ZH_name="待刪除菜品", EN_name="Dish to delete", price=50.0, URL="url_delete", is_available=True
+        zh_name="待刪除菜品", en_name="Dish to delete", price=50.0, url="url_delete", is_available=True
     )
     db.add(menu_item_to_delete)
     db.commit()
     db.refresh(menu_item_to_delete)
-
+    delID=menu_item_to_delete.id
     response = client.delete(f"/menu-items/{menu_item_to_delete.id}/hard-delete")
     assert response.status_code == 200
-    assert response.json()["message"] == f"Menu item with id {menu_item_to_delete.id} hard deleted successfully and change recorded."
+    assert response.json()["message"] == f"Menu item with id {delID} hard deleted successfully and change recorded."
 
     # 驗證菜單項目是否從資料庫中移除
-    deleted_item = db.query(MenuItem).filter(MenuItem.id == menu_item_to_delete.id).first()
+    deleted_item = db.query(MenuItem).filter(MenuItem.id == delID).first()
+    print(deleted_item)
     assert deleted_item is None
 
     # 驗證 MenuChange 記錄
-    change_record = db.query(MenuChange).filter(MenuChange.menu_item_id == menu_item_to_delete.id).first()
+    change_record = db.query(MenuChange).filter(MenuChange.menu_item_id == delID).first()
     assert change_record is not None
     assert change_record.change_type == "hard_remove"
-    assert change_record.old_values["ZH_name"] == "待刪除菜品"
+    assert change_record.old_values["zh_name"] == "待刪除菜品"
     assert change_record.new_values == {}
 
 
@@ -273,7 +269,7 @@ def test_hard_delete_menu_item_not_found(client):
 def test_toggle_menu_item_availability(client, db):
     """測試切換菜單項目上架/下架狀態。"""
     menu_item = MenuItem(
-        ZH_name="可切換菜品", EN_name="Toggle Dish", price=75.0, URL="url_toggle", is_available=True
+        zh_name="可切換菜品", en_name="Toggle Dish", price=75.0, url="url_toggle", is_available=True
     )
     db.add(menu_item)
     db.commit()
