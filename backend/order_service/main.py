@@ -118,7 +118,6 @@ async def create_order(
         user_id=order.user_id,
         total_amount=total_amount,
         payment_method=order.payment_method,
-        status=order.status,
         payment_status=order.payment_status,
     )
     db.add(db_order)
@@ -179,7 +178,7 @@ def update_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    order.status = status
+    order.payment_status = status
     db.commit()
     return {"message": "Order status updated successfully"} 
 
@@ -261,13 +260,8 @@ def get_analytics(
             media_type="text/csv",
             headers={"Content-Disposition": "attachment; filename=menu_preferences.csv"}
         )
-        
-
-
-
-
-app.include_router(router, prefix="/api", tags=["Analytics"])
 
 @app.get("/")
 def root():
     return {"message": "Order service running"}
+app.include_router(router, prefix="/api", tags=["Analytics"])
