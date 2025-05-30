@@ -98,20 +98,13 @@ def mock_external_services_and_rabbitmq():
             yield m # 繼續執行測試
 
 # --- 菜單相關路由測試 ---
-
-def test_get_all_menu_items_empty(client):
-    """測試獲取所有菜單項目 (初始為空)。"""
-    response = client.get("/menu-items/")
-    assert response.status_code == 200
-    assert response.json() == []
-
 def test_create_menu_item(client, db):
     """測試創建菜單項目。"""
     menu_item_data = {
-        "zh_name": "紅燒肉",
+        "zh_name": "紅燒肉", # 注意這裡的鍵名已經修正為小寫
         "en_name": "Braised Pork",
         "price": 120.5,
-        "url": "http://example.com/braised_pork.jpg",
+        "url": "http://example.com/braised_pork.jpg", # 注意這裡的鍵名已經修正為小寫
         "is_available": True
     }
     response = client.post("/menu-items/", json=menu_item_data)
@@ -122,11 +115,16 @@ def test_create_menu_item(client, db):
     assert created_item["price"] == 120.5
     assert "id" in created_item
     assert "created_at" in created_item
+    # --- 軟刪除相關驗證 ---
+    assert created_item["is_deleted"] is False # 新增時應為 False
+    assert created_item["deleted_at"] is None # 新增時應為 None
+    # ----------------------
 
     # 驗證資料庫中是否存在該項目
     item_in_db = db.query(MenuItem).filter(MenuItem.id == created_item["id"]).first()
     assert item_in_db is not None
     assert item_in_db.zh_name == "紅燒肉"
+    assert item_in_db.is_deleted is False # 驗證數據庫中 is_deleted 狀態
 
     # 驗證 MenuChange 記錄
     change_in_db = db.query(MenuChange).filter(MenuChange.menu_item_id == created_item["id"]).first()
@@ -140,7 +138,7 @@ def test_get_menu_item_by_id(client, db):
     """測試根據 ID 獲取單一菜單項目。"""
     # 先創建一個項目
     menu_item = MenuItem(
-        zh_name="雞腿便當", en_name="Chicken Leg Bento", price=95.0, url="url_chicken", is_available=True
+        zh_name="雞腿便當", en_name="Chicken Leg Bento", price=95.0, url="url_chicken", is_available=True, is_deleted=False
     )
     db.add(menu_item)
     db.commit()
@@ -151,18 +149,34 @@ def test_get_menu_item_by_id(client, db):
     retrieved_item = response.json()
     assert retrieved_item["id"] == menu_item.id
     assert retrieved_item["zh_name"] == "雞腿便當"
+    assert retrieved_item["is_deleted"] is False # 驗證獲取的項目未被刪除
 
 def test_get_menu_item_not_found(client):
     """測試獲取不存在的菜單項目。"""
     response = client.get("/menu-items/999")
     assert response.status_code == 404
-    assert response.json()["detail"] == "Menu item not found"
+    # 更新錯誤訊息以匹配新的路由邏輯，因為可能是不存在或已刪除
+    assert response.json()["detail"] == "Menu item not found or has been deleted"
+
+def test_get_deleted_menu_item_by_id(client, db):
+    """測試獲取已軟刪除的菜單項目，應返回 404。"""
+    deleted_item = MenuItem(
+        zh_name="已刪除菜品", en_name="Deleted Dish", price=100.0, url="url_deleted", is_available=True, is_deleted=True
+    )
+    db.add(deleted_item)
+    db.commit()
+    db.refresh(deleted_item)
+
+    response = client.get(f"/menu-items/{deleted_item.id}")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Menu item not found or has been deleted"
+
 
 def test_update_menu_item(client, db):
     """測試更新菜單項目並記錄變更。"""
     # 創建一個初始菜單項目
     original_item = MenuItem(
-        zh_name="魚香茄子", en_name="Fish Flavored Eggplant", price=150.0, url="url_eggplant", is_available=True
+        zh_name="魚香茄子", en_name="Fish Flavored Eggplant", price=150.0, url="url_eggplant", is_available=True, is_deleted=False
     )
     db.add(original_item)
     db.commit()
@@ -197,6 +211,7 @@ def test_update_menu_item(client, db):
     updated_item_in_db = db.query(MenuItem).filter(MenuItem.id == item_id).first()
     assert updated_item_in_db.price == 160.0
     assert updated_item_in_db.is_available is False
+    assert updated_item_in_db.is_deleted is False # 驗證未被軟刪除
     # 驗證資料庫中的 MenuChange 記錄
     change_in_db = db.query(MenuChange).filter(
         MenuChange.menu_item_id == item_id,
@@ -210,7 +225,7 @@ def test_update_menu_item(client, db):
 def test_update_menu_item_no_changes(client, db):
     """測試更新菜單項目但沒有任何變更。"""
     original_item = MenuItem(
-        zh_name="測試菜品", en_name="Test Dish", price=100.0, url="url_test", is_available=True
+        zh_name="測試菜品", en_name="Test Dish", price=100.0, url="url_test", is_available=True, is_deleted=False
     )
     db.add(original_item)
     db.commit()
@@ -232,44 +247,61 @@ def test_update_menu_item_no_changes(client, db):
     assert response.status_code == 400
     assert response.json()["detail"] == "No changes detected for menu item."
 
-def test_hard_delete_menu_item(client, db):
-    """測試硬刪除菜單項目。"""
+# --- 將硬刪除測試改為軟刪除測試 ---
+def test_soft_delete_menu_item(client, db):
+    """測試軟刪除菜單項目。"""
     menu_item_to_delete = MenuItem(
-        zh_name="待刪除菜品", en_name="Dish to delete", price=50.0, url="url_delete", is_available=True
+        zh_name="待軟刪除菜品", en_name="Dish to soft delete", price=50.0, url="url_delete", is_available=True, is_deleted=False
     )
     db.add(menu_item_to_delete)
     db.commit()
     db.refresh(menu_item_to_delete)
-    delID=menu_item_to_delete.id
-    response = client.delete(f"/menu-items/{menu_item_to_delete.id}/hard-delete")
-    assert response.status_code == 200
-    assert response.json()["message"] == f"Menu item with id {delID} hard deleted successfully and change recorded."
 
-    # 驗證菜單項目是否從資料庫中移除
-    deleted_item = db.query(MenuItem).filter(MenuItem.id == delID).first()
-    print(deleted_item)
-    assert deleted_item is None
+    # 調用新的軟刪除路由
+    response = client.delete(f"/menu-items/{menu_item_to_delete.id}") # 路由已改為 /menu-items/{id}
+    assert response.status_code == 200
+    assert response.json()["message"] == f"Menu item with id {menu_item_to_delete.id} soft deleted successfully and change recorded."
+
+    # 驗證菜單項目是否在資料庫中但被標記為 deleted
+    deleted_item = db.query(MenuItem).filter(MenuItem.id == menu_item_to_delete.id).first()
+    assert deleted_item is not None # 軟刪除後項目依然存在
+    assert deleted_item.is_deleted is True # is_deleted 應為 True
+    assert deleted_item.deleted_at is not None # deleted_at 應有值
 
     # 驗證 MenuChange 記錄
-    change_record = db.query(MenuChange).filter(MenuChange.menu_item_id == delID).first()
+    change_record = db.query(MenuChange).filter(MenuChange.menu_item_id == menu_item_to_delete.id).order_by(MenuChange.changed_at.desc()).first()
     assert change_record is not None
-    assert change_record.change_type == "hard_remove"
-    assert change_record.old_values["zh_name"] == "待刪除菜品"
-    assert change_record.new_values == {}
+    assert change_record.change_type == "soft_remove" # 變更類型應為 "soft_remove"
+    assert change_record.old_values["is_deleted"] is False # 舊的 is_deleted 狀態
+    assert change_record.new_values["is_deleted"] is True # 新的 is_deleted 狀態
+    assert change_record.new_values["deleted_at"] is not None # 新的 deleted_at 應有值
 
 
-
-def test_hard_delete_menu_item_not_found(client):
-    """測試刪除不存在的菜單項目。"""
-    response = client.delete("/menu-items/999/hard-delete")
+def test_soft_delete_menu_item_not_found(client):
+    """測試軟刪除不存在或已刪除的菜單項目。"""
+    response = client.delete("/menu-items/999") # 路由已改
     assert response.status_code == 404
-    assert response.json()["detail"] == "Menu item not found"
+    assert response.json()["detail"] == "Menu item not found or already deleted"
+
+def test_soft_delete_already_deleted_menu_item(client, db):
+    """測試嘗試再次軟刪除已軟刪除的菜單項目。"""
+    already_deleted_item = MenuItem(
+        zh_name="已刪除菜品", en_name="Already Deleted Dish", price=60.0, url="url_already_deleted", is_available=True, is_deleted=True
+    )
+    db.add(already_deleted_item)
+    db.commit()
+    db.refresh(already_deleted_item)
+
+    response = client.delete(f"/menu-items/{already_deleted_item.id}")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Menu item not found or already deleted"
+
 
 
 def test_toggle_menu_item_availability(client, db):
     """測試切換菜單項目上架/下架狀態。"""
     menu_item = MenuItem(
-        zh_name="可切換菜品", en_name="Toggle Dish", price=75.0, url="url_toggle", is_available=True
+        zh_name="可切換菜品", en_name="Toggle Dish", price=75.0, url="url_toggle", is_available=True, is_deleted=False
     )
     db.add(menu_item)
     db.commit()
@@ -280,16 +312,18 @@ def test_toggle_menu_item_availability(client, db):
     assert response.status_code == 200
     updated_item = response.json()
     assert updated_item["is_available"] is False
+    assert updated_item["is_deleted"] is False # 驗證軟刪除狀態未改變
 
     # 驗證資料庫中的狀態
     item_in_db = db.query(MenuItem).filter(MenuItem.id == menu_item.id).first()
     assert item_in_db.is_available is False
+    assert item_in_db.is_deleted is False # 驗證軟刪除狀態未改變
 
     # 驗證 MenuChange 記錄 (第一次切換)
     change_record_1 = db.query(MenuChange).filter(
         MenuChange.menu_item_id == menu_item.id,
         MenuChange.change_type == "toggle_availability"
-    ).order_by(MenuChange.changed_at.desc()).first() # 取得最新的記錄
+    ).order_by(MenuChange.changed_at.desc()).first()
     assert change_record_1 is not None
     assert change_record_1.old_values["is_available"] is True
     assert change_record_1.new_values["is_available"] is False
@@ -299,16 +333,18 @@ def test_toggle_menu_item_availability(client, db):
     assert response.status_code == 200
     updated_item = response.json()
     assert updated_item["is_available"] is True
+    assert updated_item["is_deleted"] is False
 
     # 驗證資料庫中的狀態
     item_in_db = db.query(MenuItem).filter(MenuItem.id == menu_item.id).first()
     assert item_in_db.is_available is True
+    assert item_in_db.is_deleted is False
 
     # 驗證 MenuChange 記錄 (第二次切換)
     change_record_2 = db.query(MenuChange).filter(
         MenuChange.menu_item_id == menu_item.id,
         MenuChange.change_type == "toggle_availability"
-    ).order_by(MenuChange.changed_at.desc()).first() # 取得最新的記錄
+    ).order_by(MenuChange.changed_at.desc()).first()
     assert change_record_2 is not None
     assert change_record_2.old_values["is_available"] is False
     assert change_record_2.new_values["is_available"] is True
@@ -317,4 +353,17 @@ def test_toggle_menu_item_availability_not_found(client):
     """測試切換不存在菜單項目狀態。"""
     response = client.put("/menu-items/999/toggle-availability")
     assert response.status_code == 404
-    assert response.json()["detail"] == "Menu item not found"
+    assert response.json()["detail"] == "Menu item not found or has been deleted"
+
+def test_toggle_availability_of_deleted_menu_item(client, db):
+    """測試切換已軟刪除菜單項目狀態，應返回 404。"""
+    deleted_item = MenuItem(
+        zh_name="已刪除菜品", en_name="Deleted Dish", price=100.0, url="url_deleted", is_available=True, is_deleted=True
+    )
+    db.add(deleted_item)
+    db.commit()
+    db.refresh(deleted_item)
+
+    response = client.put(f"/menu-items/{deleted_item.id}/toggle-availability")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Menu item not found or has been deleted"

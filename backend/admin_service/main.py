@@ -121,14 +121,14 @@ async def validate_and_translate_names(zh_name: str, en_name: str) -> tuple[str,
 async def test_endpoint():
     return {"message": "Test successful!"}
 
-#  取得所有菜品
+# 取得所有菜品
 @app.get("/menu-items/", response_model=List[schemas.MenuItem])
 async def get_all_menu_items(
     db: Session = Depends(get_db),
     admin: dict = Security(verify_admin)
 ) -> List[schemas.MenuItem]:
-    menu_items = db.query(models.MenuItem).all()
-    # 使用 from_orm 方法將 SQLAlchemy ORM 物件轉換為 Pydantic Schema 物件
+    # 軟刪除後，預設只顯示未被軟刪除的菜品
+    menu_items = db.query(models.MenuItem).filter(models.MenuItem.is_deleted == False).all()
     return [schemas.MenuItem.from_orm(item) for item in menu_items]
 
 # 取得單一菜品 (根據 ID)
@@ -136,30 +136,40 @@ async def get_all_menu_items(
 async def get_menu_item(
     menu_item_id: int,
     db: Session = Depends(get_db),
-    admin: dict = Security(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin)
 ) -> schemas.MenuItem:
-    menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == menu_item_id).first()
+    # 軟刪除後，預設只查詢未被軟刪除的菜品
+    menu_item = db.query(models.MenuItem).filter(
+        models.MenuItem.id == menu_item_id, 
+        models.MenuItem.is_deleted == False
+    ).first()
     if not menu_item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found or has been deleted")
     return schemas.MenuItem.from_orm(menu_item)
 
-# 硬刪除菜品 (將其從資料庫完全移除)
-@app.delete("/menu-items/{menu_item_id}/hard-delete", status_code=status.HTTP_200_OK)
-async def hard_delete_menu_item(
+## 新增軟刪除的路由 (取代原硬刪除)
+@app.delete("/menu-items/{menu_item_id}", status_code=status.HTTP_200_OK) # 將硬刪除路由改為軟刪除，移除 /hard-delete
+async def soft_delete_menu_item( # 函數名稱也改為 soft_delete
     menu_item_id: int,
-    db: Session = Depends(get_db),    
+    db: Session = Depends(get_db),      
     admin: dict = Security(verify_admin)
 ) -> Dict[str, str]:
-    menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == menu_item_id).first()
+    menu_item = db.query(models.MenuItem).filter(
+        models.MenuItem.id == menu_item_id,
+        models.MenuItem.is_deleted == False # 確保要刪除的菜品尚未被軟刪除
+    ).first()
     if not menu_item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found or already deleted")
 
+    # 記錄舊值（軟刪除前）
     old_values_for_db = {
         "zh_name": menu_item.zh_name,
         "en_name": menu_item.en_name,
         "price": menu_item.price,
         "url": menu_item.url,
-        "is_available": menu_item.is_available
+        "is_available": menu_item.is_available,
+        "is_deleted": menu_item.is_deleted, # 記錄舊的 is_deleted 狀態
+        "deleted_at": str(menu_item.deleted_at) if menu_item.deleted_at else None # 記錄舊的 deleted_at
     }
 
     admin_role_to_id_map = {
@@ -169,24 +179,30 @@ async def hard_delete_menu_item(
     user_role_from_jwt = admin.get("role")
     changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0)
 
-    # 🔼 先記錄變更
+    # 執行軟刪除：更新 is_deleted 標誌和 deleted_at 時間
+    menu_item.is_deleted = True
+    menu_item.deleted_at = datetime.utcnow() # 設定刪除時間
+    
+    db.commit() # 提交 MenuItem 的更新
+    db.refresh(menu_item) # 刷新以獲取更新後的狀態
+
+    # 記錄變更：change_type 為 "soft_remove"
     db_menu_change = models.MenuChange(
-        menu_item_id=menu_item.id,  # 用 menu_item.id 而不是 menu_item_id（以防參數被亂傳）
-        change_type="hard_remove",
+        menu_item_id=menu_item.id,
+        change_type="soft_remove", # 變更類型改為 "soft_remove"
         old_values=old_values_for_db,
-        new_values={},
+        new_values={ # 記錄新的狀態
+            "is_deleted": menu_item.is_deleted,
+            "deleted_at": str(menu_item.deleted_at) # 記錄新的 deleted_at
+        },
         changed_by=changed_by_id
     )
     db.add(db_menu_change)
     db.commit()
     db.refresh(db_menu_change)
+    return {"message": f"Menu item with id {menu_item_id} soft deleted successfully and change recorded."}
 
-    # 🔽 然後才刪除 menu_item
-    db.delete(menu_item)
-    db.commit()
-
-    return {"message": f"Menu item with id {menu_item_id} hard deleted successfully and change recorded."}
-# 上架/下架菜單項目
+# 上架/下架菜單項目 (無需大改動，但要注意查詢時預設不包含已刪除的)
 @app.put("/menu-items/{menu_item_id}/toggle-availability", response_model=schemas.MenuItem)
 async def toggle_menu_item_availability(
     menu_item_id: int,
@@ -196,9 +212,13 @@ async def toggle_menu_item_availability(
     """
     切換菜單項目的上架/下架狀態 (is_available)。
     """
-    menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == menu_item_id).first()
+    # 查詢時加上 is_deleted == False
+    menu_item = db.query(models.MenuItem).filter(
+        models.MenuItem.id == menu_item_id,
+        models.MenuItem.is_deleted == False # 確保只能操作未刪除的菜品
+    ).first()
     if not menu_item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found or has been deleted")
 
     old_is_available = menu_item.is_available
     new_is_available = not old_is_available # 切換狀態
@@ -211,17 +231,10 @@ async def toggle_menu_item_availability(
     db.refresh(menu_item)
     
     admin_role_to_id_map = {
-        "admin": 1,        # 為 'admin' 角色指定一個整數 ID
-        "super_admin": 2,  # 為 'super_admin' 角色指定一個整數 ID
-        # 如果未來有其他管理員角色，可以在這裡添加更多映射
+        "admin": 1,
+        "super_admin": 2,
     }
-    
-    # 從 verify_admin 返回的 'admin' payload 中獲取 'role'
-    # 使用 .get() 方法可以避免 KeyError，如果 'role' 鍵不存在則返回 None
     user_role_from_jwt = admin.get("role")
-    
-    # 根據角色獲取對應的整數 ID，如果角色不在映射中，則使用一個默認值 (例如 0 或一個錯誤 ID)
-    # 這裡假設所有有效的管理員角色都會在映射中。
     changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0)
 
     # 記錄變更
@@ -230,7 +243,7 @@ async def toggle_menu_item_availability(
         change_type="toggle_availability",
         old_values=old_values_for_db,
         new_values=new_values_for_db,
-        changed_by=changed_by_id#admin["id"]
+        changed_by=changed_by_id
     )
     db.add(db_menu_change)
     db.commit()
@@ -238,7 +251,6 @@ async def toggle_menu_item_availability(
     return schemas.MenuItem.from_orm(menu_item)
 
 
-# 新增菜單項目
 # 新增菜單項目
 @app.post("/menu-items/", response_model=schemas.MenuItem, status_code=status.HTTP_201_CREATED)
 async def create_menu_item(
@@ -262,20 +274,8 @@ async def create_menu_item(
         "super_admin": 2,  # 為 'super_admin' 角色指定一個整數 ID
         # 如果未來有其他管理員角色，可以在這裡添加更多映射
     }
-    
-    # 從 verify_admin 返回的 'admin' payload 中獲取 'role'
-    # 使用 .get() 方法可以避免 KeyError，如果 'role' 鍵不存在則返回 None
     user_role_from_jwt = admin.get("role")
-    
-    # 根據角色獲取對應的整數 ID，如果角色不在映射中，則使用一個默認值 (例如 0 或一個錯誤 ID)
-    # 這裡假設所有有效的管理員角色都會在映射中。
     changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0) 
-    # 如果你希望在角色未匹配時拋出錯誤，可以這樣做：
-    # if user_role_from_jwt not in admin_role_to_id_map:
-    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid admin role for change tracking")
-    # changed_by_id = admin_role_to_id_map[user_role_from_jwt]
-
-    # 創建 MenuChange 記錄 (新增操作)
     # new_values 就是新增的菜單項目內容
     new_values_for_db = menu_item.dict()
     db_menu_change = models.MenuChange(
@@ -315,72 +315,60 @@ async def create_menu_item(
 
 
 # 菜單變更相關路由 (更新菜單項目並記錄變更)
-@app.put("/menu-items/{menu_item_id}/", response_model=schemas.MenuChange) # 使用 PUT 請求來更新特定資源
-async def update_menu_item_and_record_change( # 將函數名稱改為更具描述性
+@app.put("/menu-items/{menu_item_id}/", response_model=schemas.MenuChange)
+async def update_menu_item_and_record_change(
     menu_item_id: int,
     menu_change_data: schemas.MenuChangeCreate,
     db: Session = Depends(get_db),
-    admin: dict = Security(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin)
 ) -> schemas.MenuChange:
     """
     更新菜單項目並記錄其變更。
     """
-    # 檢查 menu_change_data 中的 menu_item_id 是否與 Path 參數一致，增加安全性
     if menu_item_id != menu_change_data.menu_item_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Menu item ID in path and request body do not match.")
 
-    # 1. 取得要修改的菜品
-    menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == menu_item_id).first()
+    # 查詢時加上 is_deleted == False
+    menu_item = db.query(models.MenuItem).filter(
+        models.MenuItem.id == menu_item_id,
+        models.MenuItem.is_deleted == False # 確保只能更新未刪除的菜品
+    ).first()
     if not menu_item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found or has been deleted")
     
     new_ZH = menu_change_data.new_values.get("zh_name", menu_item.zh_name)
     new_EN = menu_change_data.new_values.get("en_name", menu_item.en_name)
     zh, en = await validate_and_translate_names(new_ZH, new_EN)
-    # 更新回 new_values
     menu_change_data.new_values["zh_name"] = zh
     menu_change_data.new_values["en_name"] = en
-    # 記錄實際被修改的欄位及其新值
+    
     new_values_for_db = {}
-    # 記錄被修改欄位的舊值
     old_values_for_db = {}
 
-    # 遍歷所有可能的 MenuItem 欄位，並檢查 new_values 中是否有對應的更新
     update_fields = ["zh_name", "en_name", "price", "url", "is_available"]
     
     for field in update_fields:
-        # 檢查 new_values 中是否存在該欄位，並且值與當前資料庫中的值不同
         if field in menu_change_data.new_values and getattr(menu_item, field) != menu_change_data.new_values[field]:
             old_values_for_db[field] = getattr(menu_item, field)
             setattr(menu_item, field, menu_change_data.new_values[field])
             new_values_for_db[field] = menu_change_data.new_values[field]
 
-    # 如果沒有任何欄位被修改，拋出錯誤或回傳特定訊息
     if not new_values_for_db:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No changes detected for menu item.")
     
-    # 提交 menu_item 的變更
     db.commit()
-    db.refresh(menu_item) # 刷新 menu_item 物件，確保其屬性反映資料庫的最新狀態
+    db.refresh(menu_item)
 
     admin_role_to_id_map = {
-        "admin": 1,        # 為 'admin' 角色指定一個整數 ID
-        "super_admin": 2,  # 為 'super_admin' 角色指定一個整數 ID
-        # 如果未來有其他管理員角色，可以在這裡添加更多映射
+        "admin": 1,
+        "super_admin": 2,
     }
-    
-    # 從 verify_admin 返回的 'admin' payload 中獲取 'role'
-    # 使用 .get() 方法可以避免 KeyError，如果 'role' 鍵不存在則返回 None
     user_role_from_jwt = admin.get("role")
-    
-    # 根據角色獲取對應的整數 ID，如果角色不在映射中，則使用一個默認值 (例如 0 或一個錯誤 ID)
-    # 這裡假設所有有效的管理員角色都會在映射中。
     changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0)
 
-    # 建立 MenuChange 紀錄
     db_menu_change = models.MenuChange(
         menu_item_id=menu_item.id,
-        change_type=menu_change_data.change_type, # 使用來自 input 的 change_type (例如 "update")
+        change_type=menu_change_data.change_type,
         old_values=old_values_for_db,
         new_values=new_values_for_db,
         changed_by=changed_by_id
@@ -407,20 +395,19 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     #    print(f"Failed to notify Order Service about menu change: {e}")
     #    raise HTTPException(status_code=500, detail=f"Failed to notify Order Service: {e}")
 
-    try: 
-        # 將菜單項目轉換為字典格式，並發送到 RabbitMQ
+    try:    
         dictionalized_menu_item = {
             "id": menu_item.id,
             "zh_name": menu_item.zh_name,
             "en_name": menu_item.en_name,
             "price": menu_item.price,
             "url": menu_item.url,
-            "is_available": menu_item.is_available
+            "is_available": menu_item.is_available,
+            "is_deleted": menu_item.is_deleted # 傳遞 is_deleted 狀態
         }
         send_menu_notification(dictionalized_menu_item)
-    except pika.exceptions.AMQPConnectionError as e:
+    except Exception as e:
         print(f"Failed to send menu notification: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to send menu notification: {str(e)}")
 
     return schemas.MenuChange.from_orm(db_menu_change)
 
