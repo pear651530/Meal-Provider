@@ -125,7 +125,7 @@ async def test_endpoint():
 @app.get("/menu-items/", response_model=List[schemas.MenuItem])
 async def get_all_menu_items(
     db: Session = Depends(get_db),
-    admin: dict = Security(verify_admin)
+   # admin: dict = Security(verify_admin)
 ) -> List[schemas.MenuItem]:
     # 軟刪除後，預設只顯示未被軟刪除的菜品
     menu_items = db.query(models.MenuItem).filter(models.MenuItem.is_deleted == False).all()
