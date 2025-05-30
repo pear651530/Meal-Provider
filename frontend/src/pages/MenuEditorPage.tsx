@@ -43,117 +43,120 @@ function MenuEditorPage() {
     const [loading, setLoading] = useState(true);
     const { token } = useAuth();
 
-    // useEffect(() => {
-    //     const fetchMealsWithRatings = async () => {
-    //         setLoading(true);
-    //         try {
-    //             const res = await fetch("http://localhost:8000/menu-items/", {
-    //                 headers: {
-    //                     Authorization: `Bearer ${token}`,
-    //                 },
-    //             });
-
-    //             if (!res.ok) throw new Error("無法取得餐點列表");
-
-    //             const menuItems = await res.json();
-
-    //             // 只取 is_available === true 的餐點
-    //             const availableItems = menuItems.filter((item: any) => item.is_available);
-
-    //             // 並行取得每個餐點的評論資料
-    //             const mealsWithComments = await Promise.all(
-    //                 availableItems.map(async (item: any) => {
-    //                     const ratingRes = await fetch(
-    //                         `http://localhost:8000/ratings/${item.id}`,
-    //                         {
-    //                             headers: {
-    //                                 Authorization: `Bearer ${token}`,
-    //                             },
-    //                         }
-    //                     );
-
-    //                     if (!ratingRes.ok) throw new Error(`取得 ${item.id} 評價失敗`);
-
-    //                     const rating = await ratingRes.json();
-
-    //                     // 模擬原始格式的 comments：good_reviews 為 true，其餘為 false
-    //                     const comments: Comment[] = [];
-
-    //                     for (let i = 0; i < rating.total_reviews; i++) {
-    //                         comments.push({
-    //                             recommended: i < rating.good_reviews,
-    //                         });
-    //                     }
-
-    //                     return {
-    //                         id: item.id,
-    //                         name: item.zh_name,
-    //                         englishName: item.en_name,
-    //                         price: item.price,
-    //                         image: item.url,
-    //                         todayMeal: false, // 或根據別的 API 判斷
-    //                         comments,
-    //                     } as TodayMeal;
-    //                 })
-    //             );
-
-    //             setMeals(mealsWithComments);
-    //         } catch (err) {
-    //             console.error(err);
-    //             alert(t("載入餐點失敗"));
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     fetchMealsWithRatings();
-    // }, []);
-
-
     useEffect(() => {
-        setTimeout(() => {
-            setMeals([
-                {
-                    id: 1,
-                    name: "咖哩飯",
-                    englishName: "Curry",
-                    price: 120,
-                    image: "https://th.bing.com/th/id/OIP.vI5uFSdV9ZVyKuRVwWwEcgHaD4?w=294&h=180",
-                    todayMeal: true,
-                    comments: [
-                        { recommended: true },
-                        { recommended: false },
-                    ],
-                },
-                {
-                    id: 2,
-                    name: "炒麵",
-                    englishName: "Fried noodle",
-                    price: 100,
-                    image: "https://th.bing.com/th/id/OIP.hlmjCiCqOGAmzUDobwU5YAHaFj?w=227&h=180",
-                    todayMeal: false,
-                    comments: [
-                        { recommended: true },
-                        { recommended: true },
-                        { recommended: false },
-                    ],
-                },
-                {
-                    id: 3,
-                    name: "燒肉丼",
-                    englishName: "Yakiniku",
-                    price: 150,
-                    image: "https://th.bing.com/th/id/OIP.-MXZNrzYO4WCU3nIYWGYmQHaFa?w=245&h=180",
-                    todayMeal: true,
-                    comments: [
-                        { recommended: true },
-                        { recommended: false },
-                    ],
-                },
-            ]);
-            setLoading(false);
-        }, 1000);
+        const fetchMealsWithRatings = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch("http://localhost:8002/menu-items/", {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!res.ok) throw new Error("無法取得餐點列表");
+
+                const menuItems = await res.json();
+
+                // 只取 is_available === true 的餐點
+                const availableItems = menuItems.filter((item: any) => item.is_available || !item.is_available);
+
+                // 並行取得每個餐點的評論資料
+                const mealsWithComments = await Promise.all(
+                    availableItems.map(async (item: any) => {
+                        const ratingRes = await fetch(
+                            `http://localhost:8000/ratings/${item.id}`,
+                            {
+                                method: "GET",
+                                headers: {
+                                    Authorization: `Bearer ${token}`,
+                                },
+                            }
+                        );
+
+                        // 模擬原始格式的 comments：good_reviews 為 true，其餘為 false
+                        const comments: Comment[] = [];
+
+                        if (ratingRes.ok) {
+                            const rating = await ratingRes.json();
+                            for (let i = 0; i < rating.total_reviews; i++) {
+                                comments.push({
+                                    recommended: i < rating.good_reviews,
+                                });
+                            }
+                        } else {
+                            console.warn(`取得 ${item.id} 評價失敗，將使用空評論`);
+                        }
+
+                        return {
+                            id: item.id,
+                            name: item.zh_name,
+                            englishName: item.en_name,
+                            price: item.price,
+                            image: item.url,
+                            todayMeal: false, // 或根據別的 API 判斷
+                            comments,
+                        } as TodayMeal;
+                    })
+                );
+
+                setMeals(mealsWithComments);
+            } catch (err) {
+                console.error(err);
+                alert(t("載入餐點失敗"));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMealsWithRatings();
     }, []);
+
+
+    // useEffect(() => {
+    //     setTimeout(() => {
+    //         setMeals([
+    //             {
+    //                 id: 1,
+    //                 name: "咖哩飯",
+    //                 englishName: "Curry",
+    //                 price: 120,
+    //                 image: "https://th.bing.com/th/id/OIP.vI5uFSdV9ZVyKuRVwWwEcgHaD4?w=294&h=180",
+    //                 todayMeal: true,
+    //                 comments: [
+    //                     { recommended: true },
+    //                     { recommended: false },
+    //                 ],
+    //             },
+    //             {
+    //                 id: 2,
+    //                 name: "炒麵",
+    //                 englishName: "Fried noodle",
+    //                 price: 100,
+    //                 image: "https://th.bing.com/th/id/OIP.hlmjCiCqOGAmzUDobwU5YAHaFj?w=227&h=180",
+    //                 todayMeal: false,
+    //                 comments: [
+    //                     { recommended: true },
+    //                     { recommended: true },
+    //                     { recommended: false },
+    //                 ],
+    //             },
+    //             {
+    //                 id: 3,
+    //                 name: "燒肉丼",
+    //                 englishName: "Yakiniku",
+    //                 price: 150,
+    //                 image: "https://th.bing.com/th/id/OIP.-MXZNrzYO4WCU3nIYWGYmQHaFa?w=245&h=180",
+    //                 todayMeal: true,
+    //                 comments: [
+    //                     { recommended: true },
+    //                     { recommended: false },
+    //                 ],
+    //             },
+    //         ]);
+    //         setLoading(false);
+    //     }, 1000);
+    // }, []);
 
     const handleDragStart = (id: number) => setDraggingMealId(id);
 
@@ -263,15 +266,18 @@ function MenuEditorPage() {
 
             const data = await res.json();
 
-            const newItem: AddMeal = {
-                zh_name: data.zh_name,
-                en_name: data.en_name,
+            const newItem: TodayMeal = {
+                id: data.id,
+                name: data.zh_name,
+                englishName: data.en_name,
                 price: data.price,
-                url: data.url,
-                is_available: data.is_available,
+                image: data.url,
+                todayMeal: false,
+                comments: [],
             };
+            
+            setMeals((prev) => [...prev, newItem]);
 
-            //setMeals((prev) => [...prev, newItem]);
             setNewMeal({ name: "", englishName: "", price: "", image: "" });
             setShowAddForm(false);
 
@@ -293,16 +299,42 @@ function MenuEditorPage() {
         }
     };
 
-    const handleDeleteMeal = () => {
+    // const handleDeleteMeal = () => {
+    //     if (editMeal) {
+    //         const confirmDelete = window.confirm(t("確定要刪除這個餐點嗎？"));
+    //         if (confirmDelete) {
+    //             setMeals((prev) => prev.filter((m) => m.id !== editMeal.id));
+    //             setEditMeal(null);
+    //             alert(t("餐點已刪除！"));
+    //         }
+    //     }
+    // };
+    const handleDeleteMeal = async () => {
         if (editMeal) {
             const confirmDelete = window.confirm(t("確定要刪除這個餐點嗎？"));
-            if (confirmDelete) {
+            if (!confirmDelete) return;
+            console.log("刪除餐點 ID:", editMeal.id);
+            try {
+                const res = await fetch(`http://localhost:8002/menu-items/${editMeal.id}/hard-delete`, {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+    
+                if (!res.ok) {
+                    throw new Error("刪除失敗");
+                }
+    
                 setMeals((prev) => prev.filter((m) => m.id !== editMeal.id));
                 setEditMeal(null);
                 alert(t("餐點已刪除！"));
+            } catch (err) {
+                console.error(err);
+                alert(t("刪除餐點失敗，請稍後再試"));
             }
         }
-    };
+    };    
 
     if (loading) return <p className="MenuEditor-loading">{t("載入中...")}</p>;
 

@@ -5,6 +5,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Install PostgreSQL client for pg_isready and psql
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
-CMD ["uvicorn", "admin_service.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+COPY . .
+COPY admin_service/admin_start_service.sh /admin_start_service.sh
+RUN chmod +x /admin_start_service.sh
+
+CMD ["/admin_start_service.sh"] 

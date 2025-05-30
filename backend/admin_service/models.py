@@ -46,7 +46,7 @@ class MenuChange(Base):
     __tablename__ = "menu_changes"
 
     id = Column(Integer, primary_key=True, index=True)
-    menu_item_id = Column(Integer, ForeignKey("menu_items.id"), nullable=False) # 關聯到 MenuItem 的 ID
+    menu_item_id =Column(Integer, ForeignKey("menu_items.id", ondelete="SET NULL"), nullable=True)
     change_type = Column(String, nullable=False) # 變更類型："add", "update", "remove"
     
     # 記錄變更前後的欄位值，使用 JSON 類型以支持彈性數據結構

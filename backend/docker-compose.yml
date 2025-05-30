@@ -58,6 +58,11 @@ services:
       - DATABASE_URL=postgresql://postgres:password@postgres-admin:5432/meal_provider_admin
       - USER_SERVICE_URL=http://user-service:8000
       - ORDER_SERVICE_URL=http://order-service:8000
+      - POSTGRES_HOST=postgres-admin       # 指向 admin 服務的 PostgreSQL 容器名稱
+      - POSTGRES_USER=postgres             # 與您的 postgres-admin 容器配置匹配
+      - POSTGRES_PASSWORD=password         # 與您的 postgres-admin 容器配置匹配
+      - POSTGRES_DB=meal_provider_admin    # 與您的 postgres-admin 容器配置匹配
+
     depends_on:
       - postgres-admin
       - user-service

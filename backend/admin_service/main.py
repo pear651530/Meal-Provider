@@ -1,5 +1,3 @@
-
-
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -66,7 +64,7 @@ async def verify_admin(
     try:
         # Decode and verify the JWT token directly
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        
+        print(f"Decoded payload: {payload}") 
         # Check if token is expired
         exp = payload.get("exp")
         if exp is None or datetime.utcnow().timestamp() > exp:
@@ -146,8 +144,6 @@ async def get_menu_item(
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
     return schemas.MenuItem.from_orm(menu_item)
-
-# 硬刪除菜品 (將其從資料庫完全移除)
 @app.delete("/menu-items/{menu_item_id}/hard-delete", status_code=status.HTTP_200_OK)
 async def hard_delete_menu_item(
     menu_item_id: int,
@@ -158,7 +154,6 @@ async def hard_delete_menu_item(
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
 
-    # 記錄刪除前的狀態作為 old_values
     old_values_for_db = {
         "zh_name": menu_item.zh_name,
         "en_name": menu_item.en_name,
@@ -167,23 +162,30 @@ async def hard_delete_menu_item(
         "is_available": menu_item.is_available
     }
 
-    db.delete(menu_item)
-    db.commit()
+    admin_role_to_id_map = {
+        "admin": 1,
+        "super_admin": 2,
+    }
+    user_role_from_jwt = admin.get("role")
+    changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0)
 
-    # 創建 MenuChange 記錄
+    # 🔼 先記錄變更
     db_menu_change = models.MenuChange(
-        menu_item_id=menu_item_id,
-        change_type="hard_remove", # 變更類型改為 'hard_remove' 以示區別
+        menu_item_id=menu_item.id,  # 用 menu_item.id 而不是 menu_item_id（以防參數被亂傳）
+        change_type="hard_remove",
         old_values=old_values_for_db,
-        new_values={}, # 刪除時新值為空
-        changed_by=admin["id"]
+        new_values={},
+        changed_by=changed_by_id
     )
     db.add(db_menu_change)
     db.commit()
     db.refresh(db_menu_change)
 
-    return {"message": f"Menu item with id {menu_item_id} hard deleted successfully and change recorded."}
+    # 🔽 然後才刪除 menu_item
+    db.delete(menu_item)
+    db.commit()
 
+    return {"message": f"Menu item with id {menu_item_id} hard deleted successfully and change recorded."}
 # 上架/下架菜單項目
 @app.put("/menu-items/{menu_item_id}/toggle-availability", response_model=schemas.MenuItem)
 async def toggle_menu_item_availability(
@@ -207,6 +209,20 @@ async def toggle_menu_item_availability(
     menu_item.is_available = new_is_available # 更新 ORM 對象的狀態
     db.commit()
     db.refresh(menu_item)
+    
+    admin_role_to_id_map = {
+        "admin": 1,        # 為 'admin' 角色指定一個整數 ID
+        "super_admin": 2,  # 為 'super_admin' 角色指定一個整數 ID
+        # 如果未來有其他管理員角色，可以在這裡添加更多映射
+    }
+    
+    # 從 verify_admin 返回的 'admin' payload 中獲取 'role'
+    # 使用 .get() 方法可以避免 KeyError，如果 'role' 鍵不存在則返回 None
+    user_role_from_jwt = admin.get("role")
+    
+    # 根據角色獲取對應的整數 ID，如果角色不在映射中，則使用一個默認值 (例如 0 或一個錯誤 ID)
+    # 這裡假設所有有效的管理員角色都會在映射中。
+    changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0)
 
     # 記錄變更
     db_menu_change = models.MenuChange(
@@ -214,7 +230,7 @@ async def toggle_menu_item_availability(
         change_type="toggle_availability",
         old_values=old_values_for_db,
         new_values=new_values_for_db,
-        changed_by=admin["id"]
+        changed_by=changed_by_id#admin["id"]
     )
     db.add(db_menu_change)
     db.commit()
@@ -239,6 +255,23 @@ async def create_menu_item(
     db.add(db_menu_item)
     db.commit()
     db.refresh(db_menu_item) # 刷新以獲取由資料庫生成的 ID 和時間戳
+    admin_role_to_id_map = {
+        "admin": 1,        # 為 'admin' 角色指定一個整數 ID
+        "super_admin": 2,  # 為 'super_admin' 角色指定一個整數 ID
+        # 如果未來有其他管理員角色，可以在這裡添加更多映射
+    }
+    
+    # 從 verify_admin 返回的 'admin' payload 中獲取 'role'
+    # 使用 .get() 方法可以避免 KeyError，如果 'role' 鍵不存在則返回 None
+    user_role_from_jwt = admin.get("role")
+    
+    # 根據角色獲取對應的整數 ID，如果角色不在映射中，則使用一個默認值 (例如 0 或一個錯誤 ID)
+    # 這裡假設所有有效的管理員角色都會在映射中。
+    changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0) 
+    # 如果你希望在角色未匹配時拋出錯誤，可以這樣做：
+    # if user_role_from_jwt not in admin_role_to_id_map:
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid admin role for change tracking")
+    # changed_by_id = admin_role_to_id_map[user_role_from_jwt]
 
     # 創建 MenuChange 記錄 (新增操作)
     # new_values 就是新增的菜單項目內容
@@ -248,7 +281,7 @@ async def create_menu_item(
         change_type="add",
         old_values=None, # 新增時沒有舊值
         new_values=new_values_for_db,
-        changed_by=1#admin["id"]
+        changed_by=changed_by_id
     )
     db.add(db_menu_change)
     db.commit()
@@ -328,13 +361,27 @@ async def update_menu_item_and_record_change( # 將函數名稱改為更具描�
     db.commit()
     db.refresh(menu_item) # 刷新 menu_item 物件，確保其屬性反映資料庫的最新狀態
 
+    admin_role_to_id_map = {
+        "admin": 1,        # 為 'admin' 角色指定一個整數 ID
+        "super_admin": 2,  # 為 'super_admin' 角色指定一個整數 ID
+        # 如果未來有其他管理員角色，可以在這裡添加更多映射
+    }
+    
+    # 從 verify_admin 返回的 'admin' payload 中獲取 'role'
+    # 使用 .get() 方法可以避免 KeyError，如果 'role' 鍵不存在則返回 None
+    user_role_from_jwt = admin.get("role")
+    
+    # 根據角色獲取對應的整數 ID，如果角色不在映射中，則使用一個默認值 (例如 0 或一個錯誤 ID)
+    # 這裡假設所有有效的管理員角色都會在映射中。
+    changed_by_id = admin_role_to_id_map.get(user_role_from_jwt, 0)
+
     # 建立 MenuChange 紀錄
     db_menu_change = models.MenuChange(
         menu_item_id=menu_item.id,
         change_type=menu_change_data.change_type, # 使用來自 input 的 change_type (例如 "update")
         old_values=old_values_for_db,
         new_values=new_values_for_db,
-        changed_by=admin["id"]
+        changed_by=changed_by_id
     )
     db.add(db_menu_change)
     db.commit()
