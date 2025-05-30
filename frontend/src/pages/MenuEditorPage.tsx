@@ -42,6 +42,8 @@ function MenuEditorPage() {
     const addFormRef = useRef<HTMLDivElement | null>(null);
     const [loading, setLoading] = useState(true);
     const { token } = useAuth();
+    const [showDownloadForm, setShowDownloadForm] = useState(false);
+    const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
 
     useEffect(() => {
         const fetchMealsWithRatings = async () => {
@@ -85,7 +87,7 @@ function MenuEditorPage() {
                                 });
                             }
                         } else {
-                            console.warn(`取得 ${item.id} 評價失敗，將使用空評論`);
+                            //console.warn(`取得 ${item.id} 評價失敗，將使用空評論`);
                         }
 
                         return {
@@ -160,8 +162,38 @@ function MenuEditorPage() {
 
     const handleDragStart = (id: number) => setDraggingMealId(id);
 
-    const handleDrop = (toTodayMeal: boolean) => {
-        if (draggingMealId !== null) {
+    // const handleDrop = (toTodayMeal: boolean) => {
+    //     if (draggingMealId !== null) {
+    //         setMeals((prev) =>
+    //             prev.map((meal) =>
+    //                 meal.id === draggingMealId
+    //                     ? { ...meal, todayMeal: toTodayMeal }
+    //                     : meal
+    //             )
+    //         );
+    //         setDraggingMealId(null);
+    //     }
+    // };
+    const handleDrop = async (toTodayMeal: boolean) => {
+        if (draggingMealId === null) return;
+
+        try {
+            const res = await fetch(
+                `http://localhost:8002/menu-items/${draggingMealId}/toggle-availability`,
+                {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            if (!res.ok) {
+                throw new Error("更新失敗");
+            }
+            console.log(res);
+
+            // 若成功則更新前端 todayMeal 狀態（這是本地 UI 狀態，不等於 is_available）
             setMeals((prev) =>
                 prev.map((meal) =>
                     meal.id === draggingMealId
@@ -169,6 +201,11 @@ function MenuEditorPage() {
                         : meal
                 )
             );
+            console.log(t("餐點是否為今日餐點已更新"), draggingMealId, toTodayMeal);
+        } catch (err) {
+            console.error(err);
+            alert(t("無法更新餐點是否為今日餐點，請稍後再試"));
+        } finally {
             setDraggingMealId(null);
         }
     };
@@ -199,13 +236,44 @@ function MenuEditorPage() {
         </div>
     );
 
-    const handleConfirm = () => {
-        console.log(t("更新後餐點資料"), meals);
-        alert(t("餐點已更新！"));
-    };
+    // const handleConfirm = () => {
+    //     console.log(t("更新後餐點資料"), meals);
+    //     alert(t("餐點已更新！"));
+    // };
 
-    const handleDownloadReport = () => {
-        alert(t("已下載！"));
+    // const handleDownloadReport = () => {
+    //     alert(t("已下載！"));
+    // };
+
+    // 下載報表函式，改成接受參數
+    const handleDownloadReport = async (period: "daily" | "weekly" | "monthly") => {
+        try {
+            const res = await fetch(`http://localhost:8002/report/analytics?report_period=${period}`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) throw new Error("無法下載報表");
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `analytics-report-${period}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            alert(t("已下載報表！"));
+        } catch (err) {
+            console.error(err);
+            alert(t("下載失敗"));
+        } finally {
+            setShowDownloadForm(false);
+        }
     };
 
     // const handleAddMeal = () => {
@@ -275,7 +343,7 @@ function MenuEditorPage() {
                 todayMeal: false,
                 comments: [],
             };
-            
+
             setMeals((prev) => [...prev, newItem]);
 
             setNewMeal({ name: "", englishName: "", price: "", image: "" });
@@ -321,11 +389,11 @@ function MenuEditorPage() {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-    
+
                 if (!res.ok) {
                     throw new Error("刪除失敗");
                 }
-    
+
                 setMeals((prev) => prev.filter((m) => m.id !== editMeal.id));
                 setEditMeal(null);
                 alert(t("餐點已刪除！"));
@@ -334,7 +402,7 @@ function MenuEditorPage() {
                 alert(t("刪除餐點失敗，請稍後再試"));
             }
         }
-    };    
+    };
 
     if (loading) return <p className="MenuEditor-loading">{t("載入中...")}</p>;
 
@@ -358,9 +426,9 @@ function MenuEditorPage() {
                 </div>
 
                 <div className="MenuEditor-buttons">
-                    <button onClick={handleConfirm} className="MenuEditor-button confirm">
+                    {/* <button onClick={handleConfirm} className="MenuEditor-button confirm">
                         {t("確認修改")}
-                    </button>
+                    </button> */}
                     <button
                         onClick={() => {
                             setShowAddForm((prev) => {
@@ -376,7 +444,21 @@ function MenuEditorPage() {
                     >
                         {t("新增餐點")}
                     </button>
-                    <button onClick={handleDownloadReport} className="MenuEditor-button download">
+                    <button
+                        onClick={() => {
+                            setShowDownloadForm((prev) => {
+                                const next = !prev;
+                                if (!next) return next;
+                                setTimeout(() => {
+                                    // 捲動視窗到彈窗
+                                    const el = document.getElementById("downloadForm");
+                                    el?.scrollIntoView({ behavior: "smooth" });
+                                }, 100);
+                                return next;
+                            });
+                        }}
+                        className="MenuEditor-button download"
+                    >
                         {t("下載報表")}
                     </button>
                 </div>
@@ -412,38 +494,84 @@ function MenuEditorPage() {
                     </div>
                 )}
 
+                {showDownloadForm && (
+                    <div id="downloadForm" className="MenuEditor-download-form">
+                        <h4>{t("選擇報表期間")}</h4>
+                        <label>
+                            <input
+                                type="radio"
+                                name="reportPeriod"
+                                value="daily"
+                                checked={reportPeriod === "daily"}
+                                onChange={() => setReportPeriod("daily")}
+                            />
+                            {t("日報")}
+                        </label>
+                        <label>
+                            <input
+                                type="radio"
+                                name="reportPeriod"
+                                value="weekly"
+                                checked={reportPeriod === "weekly"}
+                                onChange={() => setReportPeriod("weekly")}
+                            />
+                            {t("週報")}
+                        </label>
+                        <label>
+                            <input
+                                type="radio"
+                                name="reportPeriod"
+                                value="monthly"
+                                checked={reportPeriod === "monthly"}
+                                onChange={() => setReportPeriod("monthly")}
+                            />
+                            {t("月報")}
+                        </label>
+                        <div className="MenuEditor-download-form-buttons">
+                        <button className="MenuEditor-download-button"
+                        onClick={() => handleDownloadReport(reportPeriod)}>{t("下載")}</button>
+                        <button className="MenuEditor-cancel-button"
+                        onClick={() => setShowDownloadForm(false)}>{t("取消")}</button>
+                        </div>
+                    </div>
+                )}
+
                 {editMeal && (
                     <div className="MenuEditor-overlay">
                         <div className="MenuEditor-edit-modal">
                             <h4>{t("編輯餐點資訊")}</h4>
-                            <input
-                                type="text"
-                                value={editMeal.name}
-                                onChange={(e) =>
-                                    setEditMeal({ ...editMeal, name: e.target.value })
-                                }
-                            />
-                            <input
-                                type="text"
-                                value={editMeal.englishName}
-                                onChange={(e) =>
-                                    setEditMeal({ ...editMeal, englishName: e.target.value })
-                                }
-                            />
-                            <input
-                                type="number"
-                                value={editMeal.price}
-                                onChange={(e) =>
-                                    setEditMeal({ ...editMeal, price: parseInt(e.target.value) })
-                                }
-                            />
-                            <input
-                                type="text"
-                                value={editMeal.image}
-                                onChange={(e) =>
-                                    setEditMeal({ ...editMeal, image: e.target.value })
-                                }
-                            />
+                            <p>{t("餐點中文名稱")}：
+                                <input
+                                    type="text"
+                                    value={editMeal.name}
+                                    onChange={(e) =>
+                                        setEditMeal({ ...editMeal, name: e.target.value })
+                                    }
+                                /></p>
+                            <p>{t("餐點英文名稱")}：
+                                <input
+                                    type="text"
+                                    value={editMeal.englishName}
+                                    onChange={(e) =>
+                                        setEditMeal({ ...editMeal, englishName: e.target.value })
+                                    }
+                                /></p>
+                            <p>{t("餐點價格")}：
+                                <input
+                                    type="number"
+                                    value={editMeal.price}
+                                    onChange={(e) =>
+                                        setEditMeal({ ...editMeal, price: parseInt(e.target.value) })
+                                    }
+                                /></p>
+                            <p>{t("餐點圖片")}：
+                                <input
+                                    type="text"
+                                    value={editMeal.image}
+                                    onChange={(e) =>
+                                        setEditMeal({ ...editMeal, image: e.target.value })
+                                    }
+                                /></p>
                             <div className="MenuEditor-edit-modal-buttons">
                                 <button onClick={handleSaveEdit}>{t("儲存")}</button>
                                 <button onClick={() => setEditMeal(null)}>{t("取消")}</button>
