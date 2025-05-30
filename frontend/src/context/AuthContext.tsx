@@ -19,6 +19,7 @@ interface Notification {
 
 interface AuthContextType {
     username: string | null;
+    user_id: number | null;
     isClerk: boolean;
     isAdmin: boolean;
     isSuperAdmin: boolean;
@@ -32,6 +33,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
     username: null,
+    user_id: null,
     isClerk: false,
     isAdmin: false,
     isSuperAdmin: false,
@@ -50,6 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [DebtNeedNotice, setDebtNeedNotice] = useState(false);
     const [token, setToken] = useState<string | null>(null);
+    const [user_id, setUserId] = useState<number | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -70,6 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     break;
             }
             setUsername(userData.username);
+            setUserId(userData.id);
             setUser(userData);
             setToken(savedToken);
             // 載入通知
@@ -97,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userData = await res.json();
             console.log("/users/me 回傳:", userData); // log 出取得的使用者資訊
             setUsername(userData.username);
+            setUserId(userData.id);
             switch (userData.role) {
                 case "super_admin":
                     setIsSuperAdmin(true);
@@ -137,6 +142,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             alert("登入失敗，無法取得使用者資訊");
             setToken(null);
             setUser(null);
+            setUserId(null);
             setUsername(null);
             setIsClerk(false);
             setIsAdmin(false);
@@ -150,6 +156,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = () => {
         setUsername(null);
+        setUserId(null);
         setIsClerk(false);
         setIsAdmin(false);
         setIsSuperAdmin(false);
@@ -165,6 +172,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         <AuthContext.Provider
             value={{
                 username,
+                user_id,
                 isClerk,
                 isAdmin,
                 isSuperAdmin,

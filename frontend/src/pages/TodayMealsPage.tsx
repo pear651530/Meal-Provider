@@ -75,6 +75,7 @@ function TodayMealsPage(): React.ReactElement {
     useEffect(() => {
         const fetchMealsWithRatings = async () => {
             setLoading(true);
+            
             try {
                 const res = await fetch("http://localhost:8002/menu-items/", {
                     method: "GET",
@@ -93,7 +94,7 @@ function TodayMealsPage(): React.ReactElement {
                 const mealsWithComments = await Promise.all(
                     availableItems.map(async (item: any) => {
                         let comments: Comment[] = [];
-
+                        
                         try {
                             const commentRes = await fetch(`http://localhost:8000/comments/${item.id}`, {
                                 method: "GET",

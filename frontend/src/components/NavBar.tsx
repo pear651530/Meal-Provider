@@ -16,10 +16,10 @@ function Navbar(): React.ReactElement | null {
     const location = useLocation();
     const navigate = useNavigate();
     const currentPath = location.pathname;
-    const { username, isClerk, isAdmin, isSuperAdmin, DebtNeedNotice, logout } =
+    const { username, user_id, isClerk, isAdmin, isSuperAdmin, DebtNeedNotice, logout } =
         useAuth();
 
-    console.log("auth :", useAuth());
+    //console.log("auth :", useAuth());
     const { t, i18n } = useTranslation();
 
     const handleLogout = () => {
@@ -48,6 +48,10 @@ function Navbar(): React.ReactElement | null {
                 className="navbar"
                 style={{ background: "#333", padding: "10px" }}
             >
+                <span style={{ color: "white", marginRight: "20px", fontWeight: "bold" }}>
+                    {t("ID")}：{user_id}
+                </span>
+
                 {navLinks.map(({ label, to }) => (
                     <Link
                         key={to}
