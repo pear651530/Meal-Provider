@@ -19,14 +19,6 @@ interface TodayMeal {
     comments: Comment[];
 }
 
-interface AddMeal {
-    zh_name: string;
-    en_name?: string;
-    price: number;
-    url: string;
-    is_available: boolean;
-}
-
 function MenuEditorPage() {
     const { t } = useTranslation();
     const [meals, setMeals] = useState<TodayMeal[]>([]);
@@ -60,7 +52,6 @@ function MenuEditorPage() {
 
                 const menuItems = await res.json();
 
-                // 只取 is_available === true 的餐點
                 const availableItems = menuItems.filter((item: any) => item.is_available || !item.is_available);
 
                 // 並行取得每個餐點的評論資料
@@ -96,7 +87,7 @@ function MenuEditorPage() {
                             englishName: item.en_name,
                             price: item.price,
                             image: item.url,
-                            todayMeal: false, // 或根據別的 API 判斷
+                            todayMeal: item.is_available, // 或根據別的 API 判斷
                             comments,
                         } as TodayMeal;
                     })
@@ -113,8 +104,6 @@ function MenuEditorPage() {
 
         fetchMealsWithRatings();
     }, []);
-
-
     // useEffect(() => {
     //     setTimeout(() => {
     //         setMeals([
@@ -357,13 +346,77 @@ function MenuEditorPage() {
         }
     };
 
-    const handleSaveEdit = () => {
-        if (editMeal) {
+    // const handleSaveEdit = () => {
+    //     if (editMeal) {
+    //         setMeals((prev) =>
+    //             prev.map((m) => (m.id === editMeal.id ? editMeal : m))
+    //         );
+    //         setEditMeal(null);
+    //         alert(t("餐點已更新！"));
+    //     }
+    // };
+    const handleSaveEdit = async () => {
+        if (!editMeal) return;
+
+        if(!editMeal.name || !editMeal.englishName || !editMeal.price || !editMeal.image) {
+            alert(t("請填寫完整資訊"));
+            return;
+        }
+
+        // 先找出原始資料（未編輯前的餐點）
+        const originalMeal = meals.find((m) => m.id === editMeal.id);
+        if (!originalMeal) return;
+
+        // 比較是否真的有修改（可以根據你需要的欄位來比對）
+        const isChanged =
+            originalMeal.name !== editMeal.name ||
+            originalMeal.englishName !== editMeal.englishName ||
+            originalMeal.price !== editMeal.price ||
+            originalMeal.image !== editMeal.image ||
+            originalMeal.todayMeal !== editMeal.todayMeal;
+
+        if (!isChanged) {
+            //alert(t("您尚未進行任何更動"));
+            setEditMeal(null);
+            return;
+        }
+
+        try {
+            // 假設你有 token 與 userId 來作為 changed_by（後端可能會自動抓）
+            const res = await fetch(`http://localhost:8002/menu-items/${editMeal.id}/`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    menu_item_id: editMeal.id,
+                    change_type: "update",
+                    new_values: {
+                        zh_name: editMeal.name,
+                        en_name: editMeal.englishName,
+                        price: editMeal.price,
+                        url: editMeal.image,
+                        is_available: editMeal.todayMeal, // 或依狀況帶值
+                    },
+                }),
+            });
+
+            if (!res.ok) throw new Error("更新餐點失敗");
+
+            const updatedMeal = await res.json();
+            console.log("更新後的餐點資料：", updatedMeal);
+
+            // 成功後更新前端狀態
             setMeals((prev) =>
                 prev.map((m) => (m.id === editMeal.id ? editMeal : m))
             );
+
             setEditMeal(null);
             alert(t("餐點已更新！"));
+        } catch (err) {
+            console.error(err);
+            alert(t("更新失敗"));
         }
     };
 
@@ -383,7 +436,7 @@ function MenuEditorPage() {
             if (!confirmDelete) return;
             console.log("刪除餐點 ID:", editMeal.id);
             try {
-                const res = await fetch(`http://localhost:8002/menu-items/${editMeal.id}/hard-delete`, {
+                const res = await fetch(`http://localhost:8002/menu-items/${editMeal.id}`, {
                     method: "DELETE",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -528,10 +581,10 @@ function MenuEditorPage() {
                             {t("月報")}
                         </label>
                         <div className="MenuEditor-download-form-buttons">
-                        <button className="MenuEditor-download-button"
-                        onClick={() => handleDownloadReport(reportPeriod)}>{t("下載")}</button>
-                        <button className="MenuEditor-cancel-button"
-                        onClick={() => setShowDownloadForm(false)}>{t("取消")}</button>
+                            <button className="MenuEditor-download-button"
+                                onClick={() => handleDownloadReport(reportPeriod)}>{t("下載")}</button>
+                            <button className="MenuEditor-cancel-button"
+                                onClick={() => setShowDownloadForm(false)}>{t("取消")}</button>
                         </div>
                     </div>
                 )}
