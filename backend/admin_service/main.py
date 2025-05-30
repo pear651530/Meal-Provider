@@ -226,7 +226,7 @@ async def toggle_menu_item_availability(
 async def create_menu_item(
     menu_item: schemas.MenuItemCreate,
     db: Session = Depends(get_db),
-   # admin: dict = Security(verify_admin) #至關掉FOR TEST
+    admin: dict = Security(verify_admin) #至關掉FOR TEST
 ) -> schemas.MenuItem:
     """
     新增一個新的菜單項目，並記錄變更。
