@@ -21,7 +21,6 @@ class Order(Base):
     user_id = Column(Integer)  # Reference to User Service
     order_date = Column(DateTime, default=datetime.utcnow)
     total_amount = Column(Float)
-    status = Column(String)  # pending, completed, cancelled
     payment_method = Column(String)  # cash, credit
     payment_status = Column(String)  # paid, unpaid
     

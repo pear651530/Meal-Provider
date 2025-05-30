@@ -119,13 +119,11 @@ def test_create_order_available(client):
         "items": [
             {
                 "menu_item_id": 1,
-                "quantity": 2,
-                "unit_price": 10.0
+                "quantity": 2
             },
             {
                 "menu_item_id": 2,
-                "quantity": 1,
-                "unit_price": 10.0
+                "quantity": 1
             }
         ]
     }
@@ -136,7 +134,6 @@ def test_create_order_available(client):
     assert response.status_code == 200
     assert item["user_id"] == order_data["user_id"]
     assert item["payment_method"] == order_data["payment_method"]
-    assert item["status"] == "pending"
     assert item["payment_status"] == "unpaid"
     assert item["total_amount"] == 35.0 # 2 * 10.0 + 1 * 15.0
 
@@ -156,8 +153,7 @@ def test_create_order_unavailable(client):
         "items": [
             {
                 "menu_item_id": 5,
-                "quantity": 2,
-                "unit_price": 10.0
+                "quantity": 2
             }
         ]
     }
@@ -173,7 +169,6 @@ def test_get_order(client):
     assert data["id"] == 1
     assert data["user_id"] == 1
     assert data["payment_method"] == "credit_card"
-    assert data["status"] == "pending"
 
 
 def test_get_user_orders(client):
@@ -183,13 +178,11 @@ def test_get_user_orders(client):
         "items": [
             {
                 "menu_item_id": 1,
-                "quantity": 2,
-                "unit_price": 10.0
+                "quantity": 2
             },
             {
                 "menu_item_id": 2,
-                "quantity": 1,
-                "unit_price": 10.0
+                "quantity": 1
             }
         ]
     }
@@ -200,13 +193,11 @@ def test_get_user_orders(client):
         "items": [
             {
                 "menu_item_id": 1,
-                "quantity": 2,
-                "unit_price": 10.0
+                "quantity": 2
             },
             {
                 "menu_item_id": 2,
-                "quantity": 1,
-                "unit_price": 10.0
+                "quantity": 1
             }
         ]
     }
@@ -236,4 +227,4 @@ def test_update_order_status(client):
 
     reponse = client.get("/orders/1")
     data = reponse.json()
-    assert data["status"] == "completed"
+    assert data["payment_status"] == "completed"

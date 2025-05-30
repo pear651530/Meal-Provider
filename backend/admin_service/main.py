@@ -88,7 +88,6 @@ async def verify_admin(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-
 translator = Translator()
 
 async def validate_and_translate_names(zh_name: str, en_name: str) -> tuple[str, str]:
@@ -122,7 +121,7 @@ async def validate_and_translate_names(zh_name: str, en_name: str) -> tuple[str,
 async def test_endpoint():
     return {"message": "Test successful!"}
 
-# 取得所有菜品
+#  取得所有菜品
 @app.get("/menu-items/", response_model=List[schemas.MenuItem])
 async def get_all_menu_items(
     db: Session = Depends(get_db),
@@ -131,7 +130,6 @@ async def get_all_menu_items(
     menu_items = db.query(models.MenuItem).all()
     # 使用 from_orm 方法將 SQLAlchemy ORM 物件轉換為 Pydantic Schema 物件
     return [schemas.MenuItem.from_orm(item) for item in menu_items]
-
 
 # 取得單一菜品 (根據 ID)
 @app.get("/menu-items/{menu_item_id}", response_model=schemas.MenuItem)
@@ -144,6 +142,8 @@ async def get_menu_item(
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
     return schemas.MenuItem.from_orm(menu_item)
+
+# 硬刪除菜品 (將其從資料庫完全移除)
 @app.delete("/menu-items/{menu_item_id}/hard-delete", status_code=status.HTTP_200_OK)
 async def hard_delete_menu_item(
     menu_item_id: int,
@@ -237,6 +237,8 @@ async def toggle_menu_item_availability(
     db.refresh(db_menu_change)
     return schemas.MenuItem.from_orm(menu_item)
 
+
+# 新增菜單項目
 # 新增菜單項目
 @app.post("/menu-items/", response_model=schemas.MenuItem, status_code=status.HTTP_201_CREATED)
 async def create_menu_item(

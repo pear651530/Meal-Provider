@@ -62,7 +62,6 @@ services:
       - POSTGRES_USER=postgres             # 與您的 postgres-admin 容器配置匹配
       - POSTGRES_PASSWORD=password         # 與您的 postgres-admin 容器配置匹配
       - POSTGRES_DB=meal_provider_admin    # 與您的 postgres-admin 容器配置匹配
-
     depends_on:
       - postgres-admin
       - user-service

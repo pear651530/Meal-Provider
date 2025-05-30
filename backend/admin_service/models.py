@@ -93,4 +93,3 @@ class Analytics(Base):
     report_date = Column(DateTime)
     data = Column(JSON)
     generated_at = Column(DateTime, default=datetime.utcnow)
-

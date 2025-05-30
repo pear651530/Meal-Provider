@@ -23,7 +23,6 @@ class MenuItem(MenuItemBase):
 class OrderItemBase(BaseModel):
     menu_item_id: int
     quantity: int
-    unit_price: float
 
 class OrderItemCreate(OrderItemBase):
     pass
@@ -37,7 +36,6 @@ class OrderItem(OrderItemBase):
 class OrderBase(BaseModel):
     user_id: int
     payment_method: str
-    status: str = "pending"
     payment_status: str = "unpaid"
 
 class OrderCreate(OrderBase):
