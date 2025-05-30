@@ -1,7 +1,10 @@
+
 import requests
 import io
 import os
-
+if os.getenv("IS_TEST") != "true":
+    from .init_db import init_db
+    init_db()
 from fastapi import FastAPI, Depends, HTTPException, APIRouter, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -110,7 +113,8 @@ async def create_order(
         if not menu_item:
             raise HTTPException(status_code=404, detail=f"Menu item {item.menu_item_id} not found")
         if not menu_item.is_available:
-            raise HTTPException(status_code=400, detail=f"Menu item {menu_item.en_name} is not available")
+            pass
+            #raise HTTPException(status_code=400, detail=f"Menu item {menu_item.en_name} is not available")
         total_amount += menu_item.price * item.quantity
 
     # 創建訂單

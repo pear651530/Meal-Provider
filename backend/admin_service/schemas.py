@@ -7,17 +7,25 @@ class MenuItemCreate(BaseModel):
     price: float
     url: str
     is_available: bool = True
+    # --- 新增軟刪除欄位到 Pydantic Schema，用於回應 ---
+    # 通常創建時不會設定 is_deleted 或 deleted_at，它們會有預設值
+    # 但如果需要從 API 接收這些狀態來創建，可以添加到這裡。
+    # 這裡我們只將它們添加到響應模型中。
 
 class MenuItem(MenuItemCreate):
     id: int
-    created_at: datetime  # 包含創建時間
-    updated_at: Optional[datetime] = None # 包含更新時間
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # --- 新增軟刪除欄位 ---
+    is_deleted: bool
+    deleted_at: Optional[datetime] = None
+    # ----------------------
     class Config:
         from_attributes = True
 
 class MenuChangeBase(BaseModel):
     menu_item_id: int
-    change_type: str  # "add", "update", "hard_remove","toggle_availability"
+    change_type: str  # "add", "update", "soft_remove","toggle_availability" # 這裡的 "hard_remove" 改為 "soft_remove"
 
 class MenuChangeCreate(MenuChangeBase):
     old_values: Optional[Dict] = None

@@ -29,6 +29,10 @@ class MenuItem(Base):
     price = Column(Float, nullable=False)   
     created_at = Column(DateTime, default=datetime.utcnow) # 創建時間
     updated_at = Column(DateTime, onupdate=datetime.utcnow) # 更新時間，每次更新時自動變更
+    # --- 新增軟刪除欄位 ---
+    is_deleted = Column(Boolean, default=False) # 新增欄位，用於軟刪除，預設為 False
+    deleted_at = Column(DateTime, nullable=True) # 記錄刪除時間，預設為 NULL
+    # ----------------------
 
     # 定義與 MenuChange 的一對多關係，一個菜單項目可以有多個變更記錄
     menu_changes = relationship("MenuChange", back_populates="menu_item")
@@ -46,17 +50,19 @@ class MenuChange(Base):
     __tablename__ = "menu_changes"
 
     id = Column(Integer, primary_key=True, index=True)
-    menu_item_id =Column(Integer, ForeignKey("menu_items.id", ondelete="SET NULL"), nullable=True)
-    change_type = Column(String, nullable=False) # 變更類型："add", "update", "remove"
+    # 這裡的 Foreign Key 關係可以保留，因為 MenuItem 記錄不會被真正刪除
+    # menu_item_id 可以保持為 NOT NULL，因為它會指向一個真實存在的 MenuItem (只是可能被標記為 deleted)
+    menu_item_id = Column(Integer, ForeignKey("menu_items.id"), nullable=False) # 確保這裡不是 nullable=True
     
-    # 記錄變更前後的欄位值，使用 JSON 類型以支持彈性數據結構
+    change_type = Column(String, nullable=False) # 變更類型："add", "update", "soft_remove", "toggle_availability"
+    
     old_values = Column(JSON, nullable=True) # 記錄舊值 (變更前狀態)，可為空 (例如新增時)
     new_values = Column(JSON, nullable=False) # 記錄新值 (變更後狀態)，不可為空
 
     changed_by = Column(Integer, nullable=False) # 執行變更的管理員 ID
     changed_at = Column(DateTime, default=datetime.utcnow) # 變更發生的時間
 
-    # 定義與 MenuItem 的多對一關係，多個變更記錄可以指向同一個菜單項目
+    # 定義與 MenuItem 的多對一關係
     menu_item = relationship("MenuItem", back_populates="menu_changes")
 
 
