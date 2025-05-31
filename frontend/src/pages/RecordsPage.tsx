@@ -596,12 +596,12 @@ function RecordsPage(): React.ReactElement {
                 <button
                     onClick={handleImmediatePayment}
                     style={{
-                        backgroundColor: debtAmount === 0 ? '#aaa' : '#ff5722',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '5px',
-                        cursor: debtAmount === 0 ? 'not-allowed' : 'pointer',
+                        backgroundColor: debtAmount === 0 ? "#aaa" : "#ff5722",
+                        color: "white",
+                        border: "none",
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        cursor: debtAmount === 0 ? "not-allowed" : "pointer",
                     }}
                     disabled={debtAmount === 0}
                 >
