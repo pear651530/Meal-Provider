@@ -40,7 +40,11 @@ function StaffManagementPage() {
                 }
 
                 const data = await response.json();
-                setUsers(data);
+                // 過濾掉 super_admin 角色的用戶
+                const filteredData = data.filter(
+                    (user: User) => user.role !== "super_admin"
+                );
+                setUsers(filteredData);
                 setLoading(false);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "發生未知錯誤");
