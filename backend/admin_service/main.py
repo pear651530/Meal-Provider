@@ -411,43 +411,6 @@ async def update_menu_item_and_record_change(
 
     return schemas.MenuChange.from_orm(db_menu_change)
 
-
-# 賬單通知相關路由
-@app.post("/billing-notifications/", response_model=List[schemas.BillingNotification])
-async def create_billing_notifications(
-    db: Session = Depends(get_db),
-    admin: dict = Security(verify_admin) #至關掉FOR TEST
-):
-    # 獲取所有未結賬的訂單
-    try:
-        response = requests.get(f"{ORDER_SERVICE_URL}/orders/unpaid")
-        unpaid_orders = response.json()
-    except requests.RequestException:
-        raise HTTPException(status_code=503, detail="Order service unavailable")
-
-    # 按用戶分組並創建賬單通知
-    notifications = []
-    user_orders = {}
-    for order in unpaid_orders:
-        if order["user_id"] not in user_orders:
-            user_orders[order["user_id"]] = []
-        user_orders[order["user_id"]].append(order)
-
-    for user_id, orders in user_orders.items():
-        total_amount = sum(order["total_amount"] for order in orders)
-        notification = models.BillingNotification(
-            user_id=user_id,
-            total_amount=total_amount,
-            billing_period_start=datetime.utcnow() - timedelta(days=30),
-            billing_period_end=datetime.utcnow(),
-            status="sent"
-        )
-        db.add(notification)
-        notifications.append(notification)
-
-    db.commit()
-    return notifications
-
 @app.get("/report/analytics", response_class=StreamingResponse)
 async def fetch_analytics_report(
     admin: dict = Security(verify_admin),
