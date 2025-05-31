@@ -133,24 +133,24 @@ function Navbar(): React.ReactElement | null {
                                         const end = now.toISOString(); // 現在
 
                                         // 建立通知
-                                        await fetch("http://localhost:8002/billing-notifications/", {
-                                            method: "POST",
-                                            headers: {
-                                                "Content-Type": "application/json",
-                                                Authorization: `Bearer ${token}`,
-                                            },
-                                            // body: JSON.stringify([
-                                            //     {
-                                            //         user_id: 1,
-                                            //         total_amount: 250.75,
-                                            //         billing_period_start: start,
-                                            //         billing_period_end: end,
-                                            //         status: "sent",
-                                            //         sent_at: now.toISOString(),
-                                            //         paid_at: null, // optional
-                                            //     },
-                                            // ]),
-                                        });
+                                        // await fetch("http://localhost:8002/billing-notifications/", {
+                                        //     method: "POST",
+                                        //     headers: {
+                                        //         "Content-Type": "application/json",
+                                        //         Authorization: `Bearer ${token}`,
+                                        //     },
+                                        //     // body: JSON.stringify([
+                                        //     //     {
+                                        //     //         user_id: 1,
+                                        //     //         total_amount: 250.75,
+                                        //     //         billing_period_start: start,
+                                        //     //         billing_period_end: end,
+                                        //     //         status: "sent",
+                                        //     //         sent_at: now.toISOString(),
+                                        //     //         paid_at: null, // optional
+                                        //     //     },
+                                        //     // ]),
+                                        // });
 
                                         // 發送通知
                                         await fetch("http://localhost:8002/billing-notifications/send", {
