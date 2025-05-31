@@ -196,6 +196,7 @@ def update_order_status(
                 "payment_status": status,
                 "is_put": True
             }
+            order.payment_status = status
             if os.getenv("IS_TEST") != "true":
                 send_order_notification(new_record_dict)
 
