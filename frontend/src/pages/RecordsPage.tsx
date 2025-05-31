@@ -39,18 +39,54 @@ function RecordsPage(): React.ReactElement {
                 if (!res.ok) throw new Error("取得用餐紀錄失敗");
                 return res.json();
             })
-            .then((data) => {
-                // 轉換 API 回傳格式到前端顯示格式
-                const mapped = data.map((item: any) => ({
-                    id: item.order_id,
-                    date: item.dining_date.split("T")[0],
-                    meal: item.menu_item_name,
-                    price: item.total_amount,
-                    paid: item.payment_status === "paid",
-                    rating: undefined, // 你可根據 item.reviews 進一步處理
-                    comment: undefined, // 你可根據 item.reviews 進一步處理
-                }));
-                setRecords(mapped);
+            .then(async (data) => {
+                console.log("[DEBUG] dining-records API 回傳：", data); // 新增 log
+                // 並行取得每筆紀錄的評論
+                const recordsWithReviews = await Promise.all(
+                    data.map(async (item: any) => {
+                        let rating: "like" | "dislike" | undefined = undefined;
+                        let comment: string | undefined = undefined;
+                        try {
+                            const res = await fetch(
+                                `http://localhost:8000/dining-records/${item.order_id}/reviews/`,
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                                }
+                            );
+                            if (res.ok) {
+                                const review = await res.json();
+                                if (review.rating === "good") rating = "like";
+                                if (review.rating === "bad") rating = "dislike";
+                                comment = review.comment;
+                            }
+                        } catch (e) {
+                            // 沒有評論或 API 失敗可忽略
+                        }
+                        return {
+                            id: item.order_id,
+                            date: new Date(
+                                item.dining_date.endsWith("Z")
+                                    ? item.dining_date
+                                    : item.dining_date + "Z"
+                            ).toLocaleString(undefined, {
+                                year: "numeric",
+                                month: "2-digit",
+                                day: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                            }),
+                            meal: item.menu_item_name,
+                            price: item.total_amount,
+                            paid: item.payment_status === "paid",
+                            rating,
+                            comment,
+                        };
+                    })
+                );
+                setRecords(recordsWithReviews.sort((a, b) => b.id - a.id)); // 依 id 由大到小排序，最新在上
             })
             .catch((err) => {
                 setRecords([]);
@@ -118,6 +154,72 @@ function RecordsPage(): React.ReactElement {
         alert(t("馬上結帳功能尚未實作！"));
     };
 
+    // 修改 handleSaveComment，根據是否已有評論決定 POST/PUT，並讓 like/dislike 按鈕也能正確更新
+    const handleSaveComment = async (
+        id?: number,
+        ratingType?: "like" | "dislike",
+        commentText?: string
+    ) => {
+        const recordId = id ?? activeRecordId;
+        if (recordId === null) return;
+        const record = records.find((r) => r.id === recordId);
+        if (!record) return;
+        const rating =
+            ratingType === "like"
+                ? "good"
+                : ratingType === "dislike"
+                ? "bad"
+                : record.rating === "like"
+                ? "good"
+                : record.rating === "dislike"
+                ? "bad"
+                : undefined;
+        if (!rating) {
+            alert(t("請先選擇喜歡或不喜歡"));
+            return;
+        }
+        // 判斷是否已有評論（有評論就 PUT，否則 POST）
+        const method =
+            record.comment !== undefined && record.comment !== null
+                ? "PUT"
+                : "POST";
+        const url = `http://localhost:8000/dining-records/${recordId}/reviews/`;
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    rating,
+                    comment: commentText ?? currentComment,
+                }),
+            });
+            if (!res.ok) throw new Error("儲存評論失敗");
+            const data = await res.json();
+            setRecords((prev) =>
+                prev.map((r) =>
+                    r.id === recordId
+                        ? {
+                              ...r,
+                              rating:
+                                  data.rating === "good"
+                                      ? "like"
+                                      : data.rating === "bad"
+                                      ? "dislike"
+                                      : undefined,
+                              comment: data.comment,
+                          }
+                        : r
+                )
+            );
+            setShowCommentModal(false);
+        } catch (err) {
+            alert(t("儲存評論失敗"));
+        }
+    };
+
     if (loading) return <p>{t("載入中...")}</p>;
 
     return (
@@ -162,23 +264,7 @@ function RecordsPage(): React.ReactElement {
                                 {t("取消")}
                             </button>
                             <button
-                                onClick={() => {
-                                    // 儲存評論到對應的 record
-                                    if (activeRecordId !== null) {
-                                        setRecords((records) =>
-                                            records.map((r) =>
-                                                r.id === activeRecordId
-                                                    ? {
-                                                          ...r,
-                                                          comment:
-                                                              currentComment,
-                                                      }
-                                                    : r
-                                            )
-                                        );
-                                    }
-                                    setShowCommentModal(false);
-                                }}
+                                onClick={() => handleSaveComment()}
                                 style={{
                                     background: "#007bff",
                                     color: "white",
@@ -254,189 +340,142 @@ function RecordsPage(): React.ReactElement {
                                                     marginBottom: "5px",
                                                 }}
                                             >
-                                                {record.rating ? (
-                                                    <>
-                                                        <button
-                                                            style={{
-                                                                backgroundColor:
-                                                                    record.rating ===
-                                                                    "like"
-                                                                        ? "#4CAF50"
-                                                                        : "#f1f1f1",
-                                                                color:
-                                                                    record.rating ===
-                                                                    "like"
-                                                                        ? "white"
-                                                                        : "black",
-                                                                border: "none",
-                                                                padding:
-                                                                    "5px 10px",
-                                                                borderRadius:
-                                                                    "5px",
-                                                            }}
-                                                            onClick={() => {
-                                                                const updatedRecords =
-                                                                    records.map(
-                                                                        (r) =>
-                                                                            r.id ===
-                                                                            record.id
-                                                                                ? {
-                                                                                      ...r,
-                                                                                      rating:
-                                                                                          r.rating ===
-                                                                                          "like"
-                                                                                              ? undefined
-                                                                                              : ("like" as "like"),
-                                                                                  }
-                                                                                : r
-                                                                    );
-                                                                setRecords(
-                                                                    updatedRecords
-                                                                );
-                                                            }}
-                                                            title={t("喜歡")}
-                                                        >
-                                                            👍
-                                                        </button>
-                                                        <button
-                                                            style={{
-                                                                backgroundColor:
-                                                                    record.rating ===
-                                                                    "dislike"
-                                                                        ? "#f44336"
-                                                                        : "#f1f1f1",
-                                                                color:
-                                                                    record.rating ===
-                                                                    "dislike"
-                                                                        ? "white"
-                                                                        : "black",
-                                                                border: "none",
-                                                                padding:
-                                                                    "5px 10px",
-                                                                borderRadius:
-                                                                    "5px",
-                                                            }}
-                                                            onClick={() => {
-                                                                const updatedRecords =
-                                                                    records.map(
-                                                                        (r) =>
-                                                                            r.id ===
-                                                                            record.id
-                                                                                ? {
-                                                                                      ...r,
-                                                                                      rating:
-                                                                                          r.rating ===
-                                                                                          "dislike"
-                                                                                              ? undefined
-                                                                                              : ("dislike" as "dislike"),
-                                                                                  }
-                                                                                : r
-                                                                    );
-                                                                setRecords(
-                                                                    updatedRecords
-                                                                );
-                                                            }}
-                                                            title={t("不喜歡")}
-                                                        >
-                                                            👎
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <button
-                                                            style={{
-                                                                backgroundColor:
-                                                                    "#f1f1f1",
-                                                                color: "black",
-                                                                border: "none",
-                                                                padding:
-                                                                    "5px 10px",
-                                                                borderRadius:
-                                                                    "5px",
-                                                            }}
-                                                            onClick={() => {
-                                                                const updatedRecords =
-                                                                    records.map(
-                                                                        (r) =>
-                                                                            r.id ===
-                                                                            record.id
-                                                                                ? {
-                                                                                      ...r,
-                                                                                      rating: "like" as "like",
-                                                                                  }
-                                                                                : r
-                                                                    );
-                                                                setRecords(
-                                                                    updatedRecords
-                                                                );
-                                                            }}
-                                                            title={t("喜歡")}
-                                                        >
-                                                            👍
-                                                        </button>
-                                                        <button
-                                                            style={{
-                                                                backgroundColor:
-                                                                    "#f1f1f1",
-                                                                color: "black",
-                                                                border: "none",
-                                                                padding:
-                                                                    "5px 10px",
-                                                                borderRadius:
-                                                                    "5px",
-                                                            }}
-                                                            onClick={() => {
-                                                                const updatedRecords =
-                                                                    records.map(
-                                                                        (r) =>
-                                                                            r.id ===
-                                                                            record.id
-                                                                                ? {
-                                                                                      ...r,
-                                                                                      rating: "dislike" as "dislike",
-                                                                                  }
-                                                                                : r
-                                                                    );
-                                                                setRecords(
-                                                                    updatedRecords
-                                                                );
-                                                            }}
-                                                            title={t("不喜歡")}
-                                                        >
-                                                            👎
-                                                        </button>
-                                                    </>
-                                                )}
+                                                <button
+                                                    style={{
+                                                        backgroundColor:
+                                                            record.rating ===
+                                                            "like"
+                                                                ? "#4CAF50"
+                                                                : "#f1f1f1",
+                                                        color:
+                                                            record.rating ===
+                                                            "like"
+                                                                ? "white"
+                                                                : "black",
+                                                        border: "none",
+                                                        padding: "5px 10px",
+                                                        borderRadius: "5px",
+                                                    }}
+                                                    onClick={async () => {
+                                                        const updatedRecords =
+                                                            records.map((r) =>
+                                                                r.id ===
+                                                                record.id
+                                                                    ? {
+                                                                          ...r,
+                                                                          rating:
+                                                                              r.rating ===
+                                                                              "like"
+                                                                                  ? undefined
+                                                                                  : ("like" as "like"),
+                                                                      }
+                                                                    : r
+                                                            );
+                                                        setRecords(
+                                                            updatedRecords
+                                                        );
+                                                        // 只有選擇 like 時才送出
+                                                        if (
+                                                            record.rating !==
+                                                            "like"
+                                                        ) {
+                                                            await handleSaveComment(
+                                                                record.id,
+                                                                "like",
+                                                                ""
+                                                            );
+                                                        }
+                                                    }}
+                                                    title={t("喜歡")}
+                                                >
+                                                    👍
+                                                </button>
+                                                <button
+                                                    style={{
+                                                        backgroundColor:
+                                                            record.rating ===
+                                                            "dislike"
+                                                                ? "#f44336"
+                                                                : "#f1f1f1",
+                                                        color:
+                                                            record.rating ===
+                                                            "dislike"
+                                                                ? "white"
+                                                                : "black",
+                                                        border: "none",
+                                                        padding: "5px 10px",
+                                                        borderRadius: "5px",
+                                                    }}
+                                                    onClick={async () => {
+                                                        const updatedRecords =
+                                                            records.map((r) =>
+                                                                r.id ===
+                                                                record.id
+                                                                    ? {
+                                                                          ...r,
+                                                                          rating:
+                                                                              r.rating ===
+                                                                              "dislike"
+                                                                                  ? undefined
+                                                                                  : ("dislike" as "dislike"),
+                                                                      }
+                                                                    : r
+                                                            );
+                                                        setRecords(
+                                                            updatedRecords
+                                                        );
+                                                        // 只有選擇 dislike 時才送出
+                                                        if (
+                                                            record.rating !==
+                                                            "dislike"
+                                                        ) {
+                                                            await handleSaveComment(
+                                                                record.id,
+                                                                "dislike",
+                                                                ""
+                                                            );
+                                                        }
+                                                    }}
+                                                    title={t("不喜歡")}
+                                                >
+                                                    👎
+                                                </button>
                                             </div>
-                                            <button
-                                                style={{
-                                                    backgroundColor:
-                                                        record.comment
-                                                            ? "#4CAF50"
-                                                            : "#007bff",
-                                                    color: "white",
-                                                    border: "none",
-                                                    padding: "5px 10px",
-                                                    borderRadius: "5px",
-                                                    fontSize: "12px",
-                                                    cursor: "pointer",
-                                                    width: "100%",
-                                                }}
-                                                onClick={() => {
-                                                    // Show comment modal for this record
-                                                    setActiveRecordId(
-                                                        record.id
-                                                    );
-                                                    setShowCommentModal(true);
-                                                    setCurrentComment(
-                                                        record.comment || ""
-                                                    );
-                                                }}
-                                            >
-                                                {record.comment
-                                                    ? t("已填寫")
-                                                    : t("填寫評論")}
-                                            </button>
+                                            {/* 只有選擇 like 或 dislike 才顯示填寫評論按鈕 */}
+                                            {(record.rating === "like" ||
+                                                record.rating ===
+                                                    "dislike") && (
+                                                <button
+                                                    style={{
+                                                        backgroundColor:
+                                                            record.comment
+                                                                ? "#4CAF50"
+                                                                : "#007bff",
+                                                        color: "white",
+                                                        border: "none",
+                                                        padding: "5px 10px",
+                                                        borderRadius: "5px",
+                                                        fontSize: "12px",
+                                                        cursor: "pointer",
+                                                        width: "100%",
+                                                    }}
+                                                    onClick={() => {
+                                                        setActiveRecordId(
+                                                            record.id
+                                                        );
+                                                        setShowCommentModal(
+                                                            true
+                                                        );
+                                                        setCurrentComment(
+                                                            record.comment || ""
+                                                        );
+                                                    }}
+                                                >
+                                                    {record.comment
+                                                        ? t("已填寫")
+                                                        : t("填寫評論")}
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
