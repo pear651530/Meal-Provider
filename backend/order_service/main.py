@@ -3,7 +3,7 @@ import requests
 import io
 import os
 if os.getenv("IS_TEST") != "true":
-    from .init_db import init_db
+    from init_db import init_db
     init_db()
 from fastapi import FastAPI, Depends, HTTPException, APIRouter, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,9 +14,11 @@ from datetime import datetime
 from sqlalchemy import func
 from datetime import date, datetime, time ,timedelta
 
-from . import models, schemas, database
-from .database import get_db
-from .rabbitmq import *
+import models
+import schemas
+import database
+from database import get_db
+from rabbitmq import *
 
 app = FastAPI(title="Order Service API")
 app.add_middleware(
@@ -34,8 +36,8 @@ consumer_thread = None
 
 @app.on_event("startup")
 async def startup_event():
-    from .database import engine
-    from .models import Base
+    from database import engine
+    from models import Base
 
     def init_db():
         Base.metadata.create_all(bind=engine)
@@ -269,3 +271,7 @@ def get_analytics(
 def root():
     return {"message": "Order service running"}
 app.include_router(router, prefix="/api", tags=["Analytics"])
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}

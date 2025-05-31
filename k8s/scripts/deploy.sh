@@ -112,10 +112,10 @@ wait_for_pod "app=prometheus" "meal-provider" 120
 wait_for_pod "app=grafana" "meal-provider" 120
 
 # 部署 HPA
-print_info "Deploying HPA..."
-kubectl apply -f ../hpa/user-service-hpa.yaml
-kubectl apply -f ../hpa/order-service-hpa.yaml
-kubectl apply -f ../hpa/frontend-hpa.yaml
+# print_info "Deploying HPA..."
+# kubectl apply -f ../hpa/user-service-hpa.yaml
+# kubectl apply -f ../hpa/order-service-hpa.yaml
+# kubectl apply -f ../hpa/frontend-hpa.yaml
 
 # 部署備份配置
 print_info "Deploying backup configurations..."

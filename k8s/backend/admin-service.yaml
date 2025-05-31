@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: admin-service
-        image: backend-admin-service:latest
+        image: ghcr.io/yunycu/meal-provider-admin-service:latest
         ports:
         - containerPort: 8000
           name: http

@@ -1,11 +1,11 @@
 import pika
 import json
 from sqlalchemy.orm import Session
-from . import models
+import models
 import threading
 import time
 import logging
-
+import os
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 # RabbitMQ configuration
 RABBITMQ_HOST = "rabbitmq"
 RABBITMQ_PORT = 5672
-RABBITMQ_USER = "guest"
-RABBITMQ_PASSWORD = "guest"
+RABBITMQ_USER = os.getenv("RABBITMQ_USER", "admin")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "password")
 MAX_RETRIES = 1
 RETRY_DELAY = 5  # seconds
 
