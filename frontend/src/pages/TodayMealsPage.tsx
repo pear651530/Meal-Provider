@@ -88,11 +88,11 @@ function TodayMealsPage(): React.ReactElement {
 
                 const menuItems = await res.json();
 
-                const availableItems = menuItems.filter((item: any) => item.is_available || !item.is_available);
+                //const availableItems = menuItems.filter((item: any) => item.is_available || !item.is_available);
 
                 // 並行取得每個餐點的評論資料
                 const mealsWithComments = await Promise.all(
-                    availableItems.map(async (item: any) => {
+                    menuItems.map(async (item: any) => {
                         let comments: Comment[] = [];
                         
                         try {
