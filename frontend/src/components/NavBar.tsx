@@ -16,6 +16,7 @@ const baseLinkStyle = {
 interface Notification {
     id: number;
     message: string;
+    notification_type: string;
     is_read: boolean;
 }
 
@@ -34,15 +35,19 @@ function Navbar(): React.ReactElement | null {
         const fetchNotifications = async () => {
             try {
                 const res = await fetch(`http://localhost:8000/users/${user_id}/notification`, {
+                    method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
 
-                if (!res.ok) throw new Error("Failed to fetch notifications");
+                if (!res.ok) {
+                    console.log(await res.json());
+                    throw new Error("Failed to fetch notifications");
+                }
 
                 const data = await res.json();
-                const unread = data.filter((n: Notification) => !n.is_read);
+                const unread = data.filter((n: Notification) => !n.is_read && n.notification_type == "billing");
                 setNotifications(unread);
             } catch (err) {
                 console.error("通知載入失敗", err);
