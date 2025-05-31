@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: frontend-config
+  namespace: meal-provider
 data:
   # API 服務配置
   VITE_USER_SERVICE_URL: "http://user-service:8000"
@@ -10,4 +11,16 @@ data:
   
   # 環境配置
   NODE_ENV: "production"
-  VITE_API_TIMEOUT: "30000" 
+  VITE_API_TIMEOUT: "30000"
+  
+  # 應用配置
+  VITE_APP_TITLE: "Meal Provider"
+  VITE_APP_DESCRIPTION: "Your trusted meal delivery service"
+  
+  # 功能配置
+  VITE_ENABLE_ANALYTICS: "true"
+  VITE_ENABLE_NOTIFICATIONS: "true"
+  
+  # 安全配置
+  VITE_ENABLE_HTTPS: "true"
+  VITE_ENABLE_CORS: "true" 

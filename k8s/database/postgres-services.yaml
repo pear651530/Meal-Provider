@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-user
+  namespace: meal-provider
+spec:
+  selector:
+    app: postgres-user
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-order
+  namespace: meal-provider
+spec:
+  selector:
+    app: postgres-order
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-admin
+  namespace: meal-provider
+spec:
+  selector:
+    app: postgres-admin
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres 

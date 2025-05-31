@@ -60,6 +60,7 @@ kubectl apply -f ../quotas/namespace-quota.yaml
 # 部署數據庫
 print_info "Deploying databases..."
 kubectl apply -f ../database/postgres-config.yaml
+kubectl apply -f ../database/postgres-services.yaml
 kubectl apply -f ../database/postgres-user-statefulset.yaml
 kubectl apply -f ../database/postgres-order-statefulset.yaml
 kubectl apply -f ../database/postgres-admin-statefulset.yaml
@@ -68,14 +69,6 @@ kubectl apply -f ../database/postgres-admin-statefulset.yaml
 wait_for_pod "app=postgres-user" "meal-provider" 300
 wait_for_pod "app=postgres-order" "meal-provider" 300
 wait_for_pod "app=postgres-admin" "meal-provider" 300
-
-# 部署 Redis
-print_info "Deploying Redis..."
-kubectl apply -f ../cache/redis-deployment.yaml
-kubectl apply -f ../cache/redis-service.yaml
-
-# 等待 Redis 就緒
-wait_for_pod "app=redis" "meal-provider" 120
 
 # 部署 RabbitMQ
 print_info "Deploying RabbitMQ..."

@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: meal-provider
+spec:
+  schedule: "0 0 * * *"  # 每天午夜執行
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: postgres-backup
+            image: postgres:13
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # 讀取備份目標
+              while IFS=: read -r host db; do
+                echo "Backing up $db from $host..."
+                pg_dump -h $host -U $POSTGRES_USER -d $db > $BACKUP_PATH/${db}_$(date +%Y%m%d).sql
+              done <<< "$BACKUP_TARGETS"
+              
+              # 清理舊備份
+              find $BACKUP_PATH -name "*.sql" -mtime +$BACKUP_RETENTION_DAYS -delete
+            envFrom:
+            - configMapRef:
+                name: backup-config
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: postgres-backup-pvc
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-backup-pvc
+  namespace: meal-provider
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi 

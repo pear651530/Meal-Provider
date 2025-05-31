@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres-user
+  namespace: meal-provider
 spec:
   serviceName: postgres-user
   replicas: 1
@@ -18,9 +19,13 @@ spec:
         image: postgres:13
         ports:
         - containerPort: 5432
+          name: postgres
         envFrom:
         - configMapRef:
-            name: postgres-config
+            name: postgres-user-config
+        env:
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "trust"
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data

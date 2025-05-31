@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prometheus-config
+  namespace: meal-provider
 data:
   prometheus.yml: |
     global:
@@ -64,4 +65,14 @@ data:
             target_label: kubernetes_namespace
           - source_labels: [__meta_kubernetes_service_name]
             action: replace
-            target_label: kubernetes_service_name 
+            target_label: kubernetes_service_name
+
+      - job_name: 'meal-provider-services'
+        static_configs:
+          - targets:
+            - 'user-service:8000'
+            - 'order-service:8000'
+            - 'admin-service:8000'
+            - 'rabbitmq:15692'
+        metrics_path: /metrics
+        scheme: http 

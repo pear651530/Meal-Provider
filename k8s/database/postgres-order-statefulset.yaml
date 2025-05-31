@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres-order
+  namespace: meal-provider
 spec:
   serviceName: postgres-order
   replicas: 1
@@ -18,7 +19,13 @@ spec:
         image: postgres:13
         ports:
         - containerPort: 5432
+          name: postgres
+        envFrom:
+        - configMapRef:
+            name: postgres-order-config
         env:
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "trust"
         - name: POSTGRES_USER
           value: postgres
         - name: POSTGRES_PASSWORD
