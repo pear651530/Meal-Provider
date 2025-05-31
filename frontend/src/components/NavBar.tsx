@@ -34,17 +34,14 @@ function Navbar(): React.ReactElement | null {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/users/${user_id}/notification`, {
+                const res = await fetch(`http://localhost:8000/users/${user_id}/notifications`, {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
 
-                if (!res.ok) {
-                    console.log(await res.json());
-                    throw new Error("Failed to fetch notifications");
-                }
+                if (!res.ok) throw new Error("Failed to fetch notifications");
 
                 const data = await res.json();
                 const unread = data.filter((n: Notification) => !n.is_read && n.notification_type == "billing");
@@ -134,28 +131,6 @@ function Navbar(): React.ReactElement | null {
                                 onClick={async () => {
                                     try {
                                         const now = new Date();
-                                        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString(); // 月初
-                                        const end = now.toISOString(); // 現在
-
-                                        // 建立通知
-                                        // await fetch("http://localhost:8002/billing-notifications/", {
-                                        //     method: "POST",
-                                        //     headers: {
-                                        //         "Content-Type": "application/json",
-                                        //         Authorization: `Bearer ${token}`,
-                                        //     },
-                                        //     // body: JSON.stringify([
-                                        //     //     {
-                                        //     //         user_id: 1,
-                                        //     //         total_amount: 250.75,
-                                        //     //         billing_period_start: start,
-                                        //     //         billing_period_end: end,
-                                        //     //         status: "sent",
-                                        //     //         sent_at: now.toISOString(),
-                                        //     //         paid_at: null, // optional
-                                        //     //     },
-                                        //     // ]),
-                                        // });
 
                                         // 發送通知
                                         await fetch("http://localhost:8002/billing-notifications/send", {
@@ -193,7 +168,7 @@ function Navbar(): React.ReactElement | null {
                                     >
                                         ×
                                     </button>
-                                    <p>{n.message}</p>
+                                    <p>{t("請盡速繳費!")}</p>
                                 </div>
                             ))}
                         </div>

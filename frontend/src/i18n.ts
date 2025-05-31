@@ -25,11 +25,13 @@ const commonTranslations = {
 const translations = {
   en: {
     // NavBar
+    "請盡速繳費!": "Please pay as soon as possible!",
     "今日餐點": "Today's Meals",
     "用餐紀錄": "Dining Records",
     "店員點餐": "Staff Orders",
     "員工賒帳紀錄": "Staff Debt Records",
     "菜單調整": "Menu Editor",
+    "員工管理": "Staff Management",
     "登出": "Logout",
 
     // ForgotPassword
@@ -147,11 +149,13 @@ const translations = {
   
   zh: {
     // NavBar
+    "請盡速繳費!": "請盡速繳費！",
     "今日餐點": "今日餐點",
     "用餐紀錄": "用餐紀錄",
     "店員點餐": "店員點餐",
     "員工賒帳紀錄": "員工賒帳紀錄",
     "菜單調整": "菜單調整",
+    "員工管理": "員工管理",
     "登出": "登出",
 
     // ForgotPassword
