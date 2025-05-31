@@ -150,8 +150,33 @@ function RecordsPage(): React.ReactElement {
 
     const nextPaymentDeadline = "2025-05-31"; // 假設下一次結帳期限
 
-    const handleImmediatePayment = () => {
-        alert(t("馬上結帳功能尚未實作！"));
+    const handleImmediatePayment = async () => {
+        // 取得當前登入的 userId
+        const userId = (user as any)?.user_id ?? (user as any)?.id;
+        if (!userId) {
+            alert(t("找不到使用者 ID"));
+            return;
+        }
+        try {
+            const res = await fetch(
+                `http://localhost:8001/orders/${userId}/status?status=paid`,
+                {
+                    method: "PUT",
+                    headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            if (!res.ok) throw new Error(`用戶 ${userId} 結帳失敗`);
+            // 更新前端狀態
+            setRecords((prev) =>
+                prev.map((r) => (r.paid ? r : { ...r, paid: true }))
+            );
+            alert(t("所有未付款訂單已成功結帳！"));
+        } catch (err: any) {
+            alert(t("結帳失敗：") + (err.message || err));
+        }
     };
 
     // 修改 handleSaveComment，根據是否已有評論決定 POST/PUT，並讓 like/dislike 按鈕也能正確更新
@@ -571,13 +596,14 @@ function RecordsPage(): React.ReactElement {
                 <button
                     onClick={handleImmediatePayment}
                     style={{
-                        backgroundColor: "#ff5722",
-                        color: "white",
-                        border: "none",
-                        padding: "10px 20px",
-                        borderRadius: "5px",
-                        cursor: "pointer",
+                        backgroundColor: debtAmount === 0 ? '#aaa' : '#ff5722',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '5px',
+                        cursor: debtAmount === 0 ? 'not-allowed' : 'pointer',
                     }}
+                    disabled={debtAmount === 0}
                 >
                     {t("馬上結帳")}
                 </button>
