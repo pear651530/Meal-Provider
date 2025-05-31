@@ -8,7 +8,6 @@ from models import MenuItem, MenuChange, BillingNotification, Analytics
 
 def init_db():
     print("Creating database tables...")
-    Base.metadata.drop_all(bind=engine)  # 清除舊的表,for testing stage 
     Base.metadata.create_all(bind=engine)
     print("Database tables created successfully!")
 
