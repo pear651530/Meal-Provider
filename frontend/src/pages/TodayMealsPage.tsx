@@ -96,7 +96,7 @@ function TodayMealsPage(): React.ReactElement {
                         let comments: Comment[] = [];
                         
                         try {
-                            const commentRes = await fetch(`http://localhost:8000/comments/${item.id}`, {
+                            const commentRes = await fetch(`http://localhost:8000/reviews/${item.id}`, {
                                 method: "GET",
                                 headers: {
                                     Authorization: `Bearer ${token}`,
@@ -105,6 +105,7 @@ function TodayMealsPage(): React.ReactElement {
 
                             if (commentRes.ok) {
                                 const commentData = await commentRes.json();
+                                console.log(`取得 ${item.id} 的評論成功: `, commentData);
                                 comments = commentData.map((c: any) => ({
                                     recommended: c.rating,
                                     text: c.comment,
@@ -141,7 +142,7 @@ function TodayMealsPage(): React.ReactElement {
     }, []);
 
     const calculateRecommendationRate = (comments: Comment[]): string => {
-        if (comments.length === 0) return "0%";
+        if (comments.length === 0) return "None";
         const recommendedCount = comments.filter((c) => c.recommended == "good").length;
         const percentage = Math.round((recommendedCount / comments.length) * 100);
         return `${percentage}%`;
