@@ -29,7 +29,7 @@ jobs:
     - name: Run order_service tests
       run: |
         cd backend/order_service
-        IS_TEST=true pytest tests/
+        IS_TEST=true pytest tests/ --cov=order_service
 
   User-Service-Tests:
     runs-on: ubuntu-latest
