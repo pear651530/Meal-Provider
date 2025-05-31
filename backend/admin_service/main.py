@@ -81,6 +81,7 @@ async def verify_admin(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Admin privileges required"
             )    
+        payload["token"] = token
         return payload
         
     except jwt.PyJWTError:
