@@ -137,12 +137,12 @@ async def get_all_menu_items(
 async def get_menu_item(
     menu_item_id: int,
     db: Session = Depends(get_db),
-    admin: dict = Security(verify_admin)
+    #admin: dict = Security(verify_admin)
 ) -> schemas.MenuItem:
     # 軟刪除後，預設只查詢未被軟刪除的菜品
     menu_item = db.query(models.MenuItem).filter(
         models.MenuItem.id == menu_item_id, 
-        models.MenuItem.is_deleted == False
+        #models.MenuItem.is_deleted == False
     ).first()
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found or has been deleted")
