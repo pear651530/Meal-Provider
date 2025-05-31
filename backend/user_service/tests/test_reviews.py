@@ -492,4 +492,95 @@ def test_get_menu_item_comments_unauthorized(client):
     # Test accessing comments endpoint without authentication
     response = client.get("/comments/1")
     assert response.status_code == 401
-    assert response.json()["detail"] == "Not authenticated" 
+    assert response.json()["detail"] == "Not authenticated"
+
+def test_delete_review(client: TestClient, test_user_token, test_user, db):
+    # Create a test dining record
+    dining_record = DiningRecord(
+        user_id=test_user.id,
+        order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item",
+        total_amount=100.0,
+        payment_status="paid"
+    )
+    db.add(dining_record)
+    db.commit()
+    db.refresh(dining_record)
+
+    # Create review in a new session
+    review = Review(
+        user_id=test_user.id,
+        dining_record_id=dining_record.id,
+        rating="good",
+        comment="Great meal!"
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+
+    # Get a fresh session for verification
+    dining_record_id = dining_record.id
+    user_id = test_user.id
+
+    # Test deleting the review
+    response = client.delete(
+        f"/dining-records/{dining_record_id}/reviews",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    assert response.status_code == 204
+
+    # Verify review was deleted using a fresh query
+    deleted_review = db.query(Review).filter(
+        Review.dining_record_id == dining_record_id,
+        Review.user_id == user_id
+    ).first()
+    assert deleted_review is None, "Review should be deleted after deletion"
+
+def test_delete_review_nonexistent_dining_record(client: TestClient, test_user_token):
+    # Test deleting review for non-existent dining record
+    response = client.delete(
+        "/dining-records/999/reviews",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Dining record not found"
+
+def test_delete_review_nonexistent_review(client: TestClient, test_user_token, test_user, db):
+    # Create a test dining record without a review
+    dining_record = DiningRecord(
+        user_id=test_user.id,
+        order_id=1,
+        menu_item_id=1,
+        menu_item_name="Test Menu Item",
+        total_amount=100.0,
+        payment_status="paid"
+    )
+    db.add(dining_record)
+    db.commit()
+    db.refresh(dining_record)
+
+    # Test deleting non-existent review
+    response = client.delete(
+        f"/dining-records/{dining_record.id}/reviews",
+        headers={"Authorization": f"Bearer {test_user_token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Review not found"
+
+def test_delete_review_unauthorized(client: TestClient, test_dining_record_instance):
+    # Test deleting review without authentication
+    response = client.delete(
+        f"/dining-records/{test_dining_record_instance.id}/reviews"
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+def test_delete_review_wrong_user(client: TestClient, test_dining_record_instance, test_admin_token):
+    # Test deleting review with different user's token
+    response = client.delete(
+        f"/dining-records/{test_dining_record_instance.id}/reviews",
+        headers={"Authorization": f"Bearer {test_admin_token}"}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Dining record not found" 
