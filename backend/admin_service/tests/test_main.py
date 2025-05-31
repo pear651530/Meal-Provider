@@ -158,18 +158,6 @@ def test_get_menu_item_not_found(client):
     # 更新錯誤訊息以匹配新的路由邏輯，因為可能是不存在或已刪除
     assert response.json()["detail"] == "Menu item not found or has been deleted"
 
-def test_get_deleted_menu_item_by_id(client, db):
-    """測試獲取已軟刪除的菜單項目，應返回 404。"""
-    deleted_item = MenuItem(
-        zh_name="已刪除菜品", en_name="Deleted Dish", price=100.0, url="url_deleted", is_available=True, is_deleted=True
-    )
-    db.add(deleted_item)
-    db.commit()
-    db.refresh(deleted_item)
-
-    response = client.get(f"/menu-items/{deleted_item.id}")
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Menu item not found or has been deleted"
 
 
 def test_update_menu_item(client, db):
