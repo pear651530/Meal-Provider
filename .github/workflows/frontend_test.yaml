@@ -1,0 +1,47 @@
+name: Frontend Test
+
+on:
+  push:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend_test.yaml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend_test.yaml'
+
+jobs:
+  test:
+    name: Run Frontend Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Clean install dependencies
+        run: |
+          rm -rf node_modules
+          npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run unit tests with coverage
+        run: npm run test -- --coverage
+
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage
