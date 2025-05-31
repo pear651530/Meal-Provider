@@ -16,3 +16,41 @@
     text-decoration: none;
     font-weight: bold;
 }
+
+.notification-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 999;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.notification {
+    position: relative;
+    background: #f9f9f9;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    border-left: 4px solid #007bff;
+    font-size: 14px;
+    color: #333;
+}
+
+.notification .close-btn {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    color: #888;
+    cursor: pointer;
+}
+
+.notification .close-btn:hover {
+    color: #000;
+}
