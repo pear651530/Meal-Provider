@@ -294,6 +294,35 @@ def update_review(
     db.refresh(db_review)
     return db_review
 
+@app.delete("/dining-records/{dining_record_id}/reviews/", status_code=status.HTTP_204_NO_CONTENT)
+def delete_review(
+    dining_record_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # First verify the dining record belongs to the user
+    db_dining_record = db.query(models.DiningRecord).filter(
+        models.DiningRecord.id == dining_record_id,
+        models.DiningRecord.user_id == current_user.id
+    ).first()
+    
+    if not db_dining_record:
+        raise HTTPException(status_code=404, detail="Dining record not found")
+    
+    # Get the existing review
+    db_review = db.query(models.Review).filter(
+        models.Review.dining_record_id == dining_record_id,
+        models.Review.user_id == current_user.id
+    ).first()
+    
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    # Delete the review
+    db.delete(db_review)
+    db.commit()
+    return None
+
 @app.get("/ratings/{menu_item_id}", response_model=schemas.MenuItemRating)
 def get_menu_item_rating(
     menu_item_id: int,
