@@ -125,34 +125,6 @@ function Navbar(): React.ReactElement | null {
                         {t("登出")}
                     </span>
 
-                    {user_id === 1 && (
-                        <div style={{ marginTop: "20px", paddingLeft: "20px" }}>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        const now = new Date();
-
-                                        // 發送通知
-                                        await fetch("http://localhost:8002/billing-notifications/send", {
-                                            method: "POST",
-                                            headers: {
-                                                Authorization: `Bearer ${token}`,
-                                            },
-                                        });
-
-                                        alert("通知已發送給 user_id = 1！");
-                                    } catch (err) {
-                                        console.error("發送通知失敗", err);
-                                        alert("通知發送失敗！");
-                                    }
-                                }}
-                                style={{ background: "orange", color: "black", padding: "5px 10px", border: "none", cursor: "pointer" }}
-                            >
-                                發送測試通知（給 user_id = 1）
-                            </button>
-                        </div>
-                    )}
-
                 </nav>
 
 

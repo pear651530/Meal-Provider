@@ -104,65 +104,9 @@ function MenuEditorPage() {
 
         fetchMealsWithRatings();
     }, []);
-    // useEffect(() => {
-    //     setTimeout(() => {
-    //         setMeals([
-    //             {
-    //                 id: 1,
-    //                 name: "咖哩飯",
-    //                 englishName: "Curry",
-    //                 price: 120,
-    //                 image: "https://th.bing.com/th/id/OIP.vI5uFSdV9ZVyKuRVwWwEcgHaD4?w=294&h=180",
-    //                 todayMeal: true,
-    //                 comments: [
-    //                     { recommended: true },
-    //                     { recommended: false },
-    //                 ],
-    //             },
-    //             {
-    //                 id: 2,
-    //                 name: "炒麵",
-    //                 englishName: "Fried noodle",
-    //                 price: 100,
-    //                 image: "https://th.bing.com/th/id/OIP.hlmjCiCqOGAmzUDobwU5YAHaFj?w=227&h=180",
-    //                 todayMeal: false,
-    //                 comments: [
-    //                     { recommended: true },
-    //                     { recommended: true },
-    //                     { recommended: false },
-    //                 ],
-    //             },
-    //             {
-    //                 id: 3,
-    //                 name: "燒肉丼",
-    //                 englishName: "Yakiniku",
-    //                 price: 150,
-    //                 image: "https://th.bing.com/th/id/OIP.-MXZNrzYO4WCU3nIYWGYmQHaFa?w=245&h=180",
-    //                 todayMeal: true,
-    //                 comments: [
-    //                     { recommended: true },
-    //                     { recommended: false },
-    //                 ],
-    //             },
-    //         ]);
-    //         setLoading(false);
-    //     }, 1000);
-    // }, []);
 
     const handleDragStart = (id: number) => setDraggingMealId(id);
 
-    // const handleDrop = (toTodayMeal: boolean) => {
-    //     if (draggingMealId !== null) {
-    //         setMeals((prev) =>
-    //             prev.map((meal) =>
-    //                 meal.id === draggingMealId
-    //                     ? { ...meal, todayMeal: toTodayMeal }
-    //                     : meal
-    //             )
-    //         );
-    //         setDraggingMealId(null);
-    //     }
-    // };
     const handleDrop = async (toTodayMeal: boolean) => {
         if (draggingMealId === null) return;
 
@@ -225,16 +169,7 @@ function MenuEditorPage() {
         </div>
     );
 
-    // const handleConfirm = () => {
-    //     console.log(t("更新後餐點資料"), meals);
-    //     alert(t("餐點已更新！"));
-    // };
-
-    // const handleDownloadReport = () => {
-    //     alert(t("已下載！"));
-    // };
-
-    // 下載報表函式，改成接受參數
+    // 下載報表函式
     const handleDownloadReport = async (period: "daily" | "weekly" | "monthly") => {
         try {
             const res = await fetch(`http://localhost:8002/report/analytics?report_period=${period}`, {
@@ -265,31 +200,6 @@ function MenuEditorPage() {
         }
     };
 
-    // const handleAddMeal = () => {
-    //     const nextId = meals.length === 0 ? 1 : Math.max(...meals.map((m) => m.id)) + 1;
-    //     const { name, englishName, price, image } = newMeal;
-
-    //     if (!name || !price || !image) {// || !englishName
-    //         alert(t("請填寫完整資訊"));
-    //         return;
-    //     }
-
-    //     const newItem: TodayMeal = {
-    //         id: nextId,
-    //         name,
-    //         englishName,
-    //         price: parseInt(price),
-    //         image,
-    //         todayMeal: false,
-    //         comments: [],
-    //     };
-
-    //     setMeals((prev) => [...prev, newItem]);
-    //     setNewMeal({ name: "", englishName: "", price: "", image: "" });
-    //     setShowAddForm(false);
-    //     console.log(t("新增餐點資料"), newItem);
-    //     alert(t("餐點已新增！"));
-    // };
     const handleAddMeal = async () => {
         const { name, englishName, price, image } = newMeal;
 
@@ -346,15 +256,6 @@ function MenuEditorPage() {
         }
     };
 
-    // const handleSaveEdit = () => {
-    //     if (editMeal) {
-    //         setMeals((prev) =>
-    //             prev.map((m) => (m.id === editMeal.id ? editMeal : m))
-    //         );
-    //         setEditMeal(null);
-    //         alert(t("餐點已更新！"));
-    //     }
-    // };
     const handleSaveEdit = async () => {
         if (!editMeal) return;
 
@@ -420,16 +321,6 @@ function MenuEditorPage() {
         }
     };
 
-    // const handleDeleteMeal = () => {
-    //     if (editMeal) {
-    //         const confirmDelete = window.confirm(t("確定要刪除這個餐點嗎？"));
-    //         if (confirmDelete) {
-    //             setMeals((prev) => prev.filter((m) => m.id !== editMeal.id));
-    //             setEditMeal(null);
-    //             alert(t("餐點已刪除！"));
-    //         }
-    //     }
-    // };
     const handleDeleteMeal = async () => {
         if (editMeal) {
             const confirmDelete = window.confirm(t("確定要刪除這個餐點嗎？"));
