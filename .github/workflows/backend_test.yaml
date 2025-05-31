@@ -29,7 +29,7 @@ jobs:
     - name: Run order_service tests
       run: |
         cd backend/order_service
-        IS_TEST=true pytest tests/ --cov=order_service
+        IS_TEST=true pytest tests/ --cov=order_service --cov-config=./.coveragerc
 
   User-Service-Tests:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
     - name: Run user_service tests
       run: |
         cd backend/user_service
-        pytest tests/ -v -k "not rabbitmq and not super_admin" --cov=user_service
+        pytest tests/ -v -k "not rabbitmq and not super_admin" --cov=user_service --cov-config=./.coveragerc
 
     # Run super admin tests
     - name: Run super admin tests
@@ -85,6 +85,6 @@ jobs:
     - name: Run admin_service tests
       run: |
         cd backend/admin_service 
-        pytest tests/test_main.py --cov=admin_service
-        pytest tests/test_report_analytics.py --cov=admin_service
-        pytest tests/test_billing.py --cov=admin_service
+        pytest tests/test_main.py --cov=admin_service --cov-config=./.coveragerc
+        pytest tests/test_report_analytics.py --cov=admin_service --cov-config=./.coveragerc
+        pytest tests/test_billing.py --cov=admin_service --cov-config=./.coveragerc
