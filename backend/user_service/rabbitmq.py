@@ -202,24 +202,42 @@ def process_order_notification(ch, method, properties, body, db: Session):
         
         # Validate required fields
         required_fields = ['user_id', 'order_id', 'menu_item_id', 'menu_item_name', 'total_amount', 'payment_status']
+        is_put = data.get('is_put', False)
         if not all(field in data for field in required_fields):
             logger.error(f"Invalid order notification format: {data}")
             ch.basic_nack(delivery_tag=method.delivery_tag)
             return
 
         # Create dining record
-        dining_record = models.DiningRecord(
-            user_id=data['user_id'],
-            order_id=data['order_id'],
-            menu_item_id=data['menu_item_id'],
-            menu_item_name=data['menu_item_name'],
-            total_amount=data['total_amount'],
-            payment_status=data['payment_status']
-        )
-        
-        db.add(dining_record)
-        db.commit()
-        logger.info(f"Created dining record for order {data['order_id']}")
+        if not is_put:
+            logger.info(f"Creating dining record for order {data['order_id']}")
+            dining_record = models.DiningRecord(
+                user_id=data['user_id'],
+                order_id=data['order_id'],
+                menu_item_id=data['menu_item_id'],
+                menu_item_name=data['menu_item_name'],
+                total_amount=data['total_amount'],
+                payment_status=data['payment_status']
+            )
+
+            db.add(dining_record)
+            db.commit()
+            logger.info(f"Created dining record for order {data['order_id']}")
+        else:
+            logger.info(f"Updating dining record for order {data['order_id']}")
+            dining_record = db.query(models.DiningRecord).filter(
+                models.DiningRecord.order_id == data['order_id'],
+                models.DiningRecord.user_id == data['user_id']
+            ).first()
+
+            if dining_record:
+                # dining_record.menu_item_name = data['menu_item_name']
+                # dining_record.total_amount = data['total_amount']
+                dining_record.payment_status = data['payment_status']
+                db.commit()
+                logger.info(f"Updated dining record for order {data['order_id']}")
+            else:
+                logger.error(f"Dining record not found for order {data['order_id']} and menu item {data['menu_item_id']}")
 
         # Acknowledge the message
         ch.basic_ack(delivery_tag=method.delivery_tag)
