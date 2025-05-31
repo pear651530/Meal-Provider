@@ -5,7 +5,7 @@ import "./TodayMealsPage.css";
 import { useAuth } from "../context/AuthContext";
 
 interface Comment {
-    recommended: boolean;
+    recommended: string;
     text: string;
 }
 
@@ -142,7 +142,7 @@ function TodayMealsPage(): React.ReactElement {
 
     const calculateRecommendationRate = (comments: Comment[]): string => {
         if (comments.length === 0) return "0%";
-        const recommendedCount = comments.filter((c) => c.recommended).length;
+        const recommendedCount = comments.filter((c) => c.recommended == "good").length;
         const percentage = Math.round((recommendedCount / comments.length) * 100);
         return `${percentage}%`;
     };
@@ -189,12 +189,12 @@ function TodayMealsPage(): React.ReactElement {
                                                         <li
                                                             key={index}
                                                             className={
-                                                                comment.recommended
+                                                                comment.recommended == "good"
                                                                     ? "recommended"
                                                                     : "not-recommended"
                                                             }
                                                         >
-                                                            {comment.recommended ? t("👍 推薦") : t("👎 不推薦")}
+                                                            {comment.recommended == "good" ? t("👍 推薦") : t("👎 不推薦")}
                                                             {`：${comment.text}`}
                                                         </li>
                                                     ))}
