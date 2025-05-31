@@ -2,7 +2,7 @@ import pika
 import json
 from datetime import datetime
 from sqlalchemy.orm import Session
-from . import models
+import models
 import threading
 import time
 import logging

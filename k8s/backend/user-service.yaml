@@ -4,7 +4,7 @@ metadata:
   name: user-service
   namespace: meal-provider
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: user-service
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: user-service
-        image: meal-provider-user-service:latest
+        image: ghcr.io/yunycu/meal-provider-user-service:latest
         ports:
         - containerPort: 8000
           name: http

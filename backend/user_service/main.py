@@ -8,9 +8,11 @@ from passlib.context import CryptContext
 from sqlalchemy import func
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import models, schemas, database
-from .database import get_db
-from .rabbitmq import setup_rabbitmq, start_consumer_thread, start_order_consumer_thread
+import models
+import schemas
+import database
+from database import get_db
+from rabbitmq import setup_rabbitmq, start_consumer_thread, start_order_consumer_thread
 
 # Create FastAPI app
 app = FastAPI(title="User Service API")

@@ -9,7 +9,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
 COPY . .
-COPY user_service/start_service.sh /start_service.sh
+# COPY user_service/start_service.sh /start_service.sh
+COPY /start_service.sh /start_service.sh
+
 RUN chmod +x /start_service.sh
 
 CMD ["/start_service.sh"] 

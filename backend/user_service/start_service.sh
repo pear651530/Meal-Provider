@@ -14,7 +14,8 @@ until pg_isready -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB; do
 done
 
 echo "Initializing database..."
-python -c "from user_service.init_db import init_db; init_db()"
+# python -c "from user_service.init_db import init_db; init_db()"
+python -c "from init_db import init_db; init_db()"
 
 echo "Waiting for users table to be ready..."
 
@@ -24,4 +25,5 @@ until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d 
 done
 
 echo "users table is ready, starting FastAPI..."
-exec uvicorn user_service.main:app --host 0.0.0.0 --port 8000 
+# exec uvicorn user_service.main:app --host 0.0.0.0 --port 8000 
+exec uvicorn main:app --host 0.0.0.0 --port 8000 
