@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: meal-provider-quota
+  namespace: meal-provider
+spec:
+  hard:
+    # CPU 限制
+    requests.cpu: "8"
+    limits.cpu: "16"
+    
+    # 內存限制
+    requests.memory: "16Gi"
+    limits.memory: "32Gi"
+    
+    # 存儲限制
+    requests.storage: "100Gi"
+    
+    # Pod 數量限制
+    pods: "50"
+    
+    # 服務數量限制
+    services: "10"
+    
+    # 持久卷聲明數量限制
+    persistentvolumeclaims: "10"
+    
+    # 配置映射數量限制
+    configmaps: "20"
+    
+    # 密鑰數量限制
+    secrets: "20"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: meal-provider-limits
+  namespace: meal-provider
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+  - max:
+      cpu: "2000m"
+      memory: "4Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+    type: Container
+  - default:
+      storage: "10Gi"
+    type: PersistentVolumeClaim 
