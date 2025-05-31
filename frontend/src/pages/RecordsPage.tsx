@@ -357,28 +357,59 @@ function RecordsPage(): React.ReactElement {
                                                         borderRadius: "5px",
                                                     }}
                                                     onClick={async () => {
-                                                        const updatedRecords =
-                                                            records.map((r) =>
-                                                                r.id ===
-                                                                record.id
-                                                                    ? {
-                                                                          ...r,
-                                                                          rating:
-                                                                              r.rating ===
-                                                                              "like"
-                                                                                  ? undefined
-                                                                                  : ("like" as "like"),
-                                                                      }
-                                                                    : r
-                                                            );
-                                                        setRecords(
-                                                            updatedRecords
-                                                        );
-                                                        // 只有選擇 like 時才送出
                                                         if (
-                                                            record.rating !==
+                                                            record.rating ===
                                                             "like"
                                                         ) {
+                                                            // 取消 like，刪除評論
+                                                            try {
+                                                                await fetch(
+                                                                    `http://localhost:8000/dining-records/${record.id}/reviews/`,
+                                                                    {
+                                                                        method: "DELETE",
+                                                                        headers:
+                                                                            {
+                                                                                Authorization: `Bearer ${token}`,
+                                                                            },
+                                                                    }
+                                                                );
+                                                                setRecords(
+                                                                    (prev) =>
+                                                                        prev.map(
+                                                                            (
+                                                                                r
+                                                                            ) =>
+                                                                                r.id ===
+                                                                                record.id
+                                                                                    ? {
+                                                                                          ...r,
+                                                                                          rating: undefined,
+                                                                                          comment:
+                                                                                              undefined,
+                                                                                      }
+                                                                                    : r
+                                                                        )
+                                                                );
+                                                            } catch (e) {
+                                                                alert(
+                                                                    t(
+                                                                        "刪除評論失敗"
+                                                                    )
+                                                                );
+                                                            }
+                                                        } else {
+                                                            // 新增/更新 like
+                                                            setRecords((prev) =>
+                                                                prev.map((r) =>
+                                                                    r.id ===
+                                                                    record.id
+                                                                        ? {
+                                                                              ...r,
+                                                                              rating: "like" as "like",
+                                                                          }
+                                                                        : r
+                                                                )
+                                                            );
                                                             await handleSaveComment(
                                                                 record.id,
                                                                 "like",
@@ -407,28 +438,59 @@ function RecordsPage(): React.ReactElement {
                                                         borderRadius: "5px",
                                                     }}
                                                     onClick={async () => {
-                                                        const updatedRecords =
-                                                            records.map((r) =>
-                                                                r.id ===
-                                                                record.id
-                                                                    ? {
-                                                                          ...r,
-                                                                          rating:
-                                                                              r.rating ===
-                                                                              "dislike"
-                                                                                  ? undefined
-                                                                                  : ("dislike" as "dislike"),
-                                                                      }
-                                                                    : r
-                                                            );
-                                                        setRecords(
-                                                            updatedRecords
-                                                        );
-                                                        // 只有選擇 dislike 時才送出
                                                         if (
-                                                            record.rating !==
+                                                            record.rating ===
                                                             "dislike"
                                                         ) {
+                                                            // 取消 dislike，刪除評論
+                                                            try {
+                                                                await fetch(
+                                                                    `http://localhost:8000/dining-records/${record.id}/reviews/`,
+                                                                    {
+                                                                        method: "DELETE",
+                                                                        headers:
+                                                                            {
+                                                                                Authorization: `Bearer ${token}`,
+                                                                            },
+                                                                    }
+                                                                );
+                                                                setRecords(
+                                                                    (prev) =>
+                                                                        prev.map(
+                                                                            (
+                                                                                r
+                                                                            ) =>
+                                                                                r.id ===
+                                                                                record.id
+                                                                                    ? {
+                                                                                          ...r,
+                                                                                          rating: undefined,
+                                                                                          comment:
+                                                                                              undefined,
+                                                                                      }
+                                                                                    : r
+                                                                        )
+                                                                );
+                                                            } catch (e) {
+                                                                alert(
+                                                                    t(
+                                                                        "刪除評論失敗"
+                                                                    )
+                                                                );
+                                                            }
+                                                        } else {
+                                                            // 新增/更新 dislike
+                                                            setRecords((prev) =>
+                                                                prev.map((r) =>
+                                                                    r.id ===
+                                                                    record.id
+                                                                        ? {
+                                                                              ...r,
+                                                                              rating: "dislike" as "dislike",
+                                                                          }
+                                                                        : r
+                                                                )
+                                                            );
                                                             await handleSaveComment(
                                                                 record.id,
                                                                 "dislike",
