@@ -19,7 +19,8 @@ echo "PostgreSQL is ready."
 # Now, initialize database tables
 echo "Initializing admin-service database tables..."
 # 切換到 admin_service 目錄，這樣 init_db.py 就能正確找到同級的 database 和 models
-(cd /app/admin_service && python init_db.py) # 使用子shell執行
+# (cd /app/admin_service && python init_db.py) # 使用子shell執行
+(cd /app && python init_db.py)
 echo "Admin-service database tables created/ensured."
 
 # Wait for menu_items table to be ready (optional, but good for robustness)
@@ -33,4 +34,4 @@ echo "menu_items table is ready." # 或者 "menu_items table check succeeded."
 
 echo "Starting FastAPI for admin-service..."
 # 確保這裡的路徑指向 admin_service 的 main.py 和 app 對象
-exec uvicorn admin_service.main:app --host 0.0.0.0 --port 8000
+exec uvicorn main:app --host 0.0.0.0 --port 8000

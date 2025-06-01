@@ -1,12 +1,12 @@
 import pika
 import json
 from datetime import datetime
-
+import os
 # RabbitMQ configuration
 RABBITMQ_HOST = "rabbitmq"
 RABBITMQ_PORT = 5672
-RABBITMQ_USER = "guest"
-RABBITMQ_PASSWORD = "guest"
+RABBITMQ_USER = os.getenv("RABBITMQ_USER", "admin")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "password")
 NOTIFICATION_EXCHANGE = "notifications"
 NOTIFICATION_ROUTING_KEY = "billing.notification"
 MENU_NOTIFICATION_QOUTING_KEY = "menu.notification"

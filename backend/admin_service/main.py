@@ -4,14 +4,15 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 import requests
 from datetime import datetime, timedelta
-from . import models, schemas
-from .database import get_db, Base, engine # <-- 確保從 database.py 導入 Base 和 engine
+import models
+import schemas
+from database import get_db, Base, engine # <-- 確保從 database.py 導入 Base 和 engine
 from fastapi.responses import StreamingResponse
 import io
 import csv
 import pika
 import json
-from .rabbitmq import send_notifications_to_users, send_menu_notification
+from rabbitmq import send_notifications_to_users, send_menu_notification
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import HTTPException, status
 from fastapi import Security
@@ -638,3 +639,7 @@ async def send_billing_notifications(
             status_code=503,
             detail="Message broker unavailable"
         )
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
