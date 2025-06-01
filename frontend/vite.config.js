@@ -7,4 +7,14 @@ export default defineConfig({
   optimizeDeps: {
     include: ["datatables.net-dt"],
   },
+  server: {
+    port: 5173,
+    setupMiddlewares(middlewares, devServer) {
+      middlewares.use('/health', (req, res, next) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ status: 'ok' }));
+      });
+      return middlewares;
+    }
+  },
 })
