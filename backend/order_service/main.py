@@ -1,4 +1,3 @@
-
 import requests
 import io
 import os
@@ -13,6 +12,8 @@ from typing import List
 from datetime import datetime
 from sqlalchemy import func
 from datetime import date, datetime, time ,timedelta
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 import models
 import schemas
@@ -40,6 +41,19 @@ app.add_middleware(
 USER_SERVICE_URL = "http://user-service:8000"
 
 consumer_thread = None
+
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    'order_service_request_count',
+    'Total count of requests',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'order_service_request_latency_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint']
+)
 
 @app.on_event("startup")
 async def startup_event():
@@ -75,6 +89,30 @@ async def shutdown_event():
         # The thread is a daemon thread, so it will be terminated when the main process exits
         pass
 
+# Add metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+# Add middleware for metrics
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = datetime.utcnow()
+    response = await call_next(request)
+    duration = (datetime.utcnow() - start_time).total_seconds()
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).observe(duration)
+    
+    return response
 
 # 驗證用戶token的依賴
 async def verify_token(token: str, db: Session = Depends(get_db)):

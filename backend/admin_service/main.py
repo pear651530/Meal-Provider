@@ -19,6 +19,8 @@ from fastapi import Security
 from googletrans import Translator
 from fastapi.middleware.cors import CORSMiddleware
 import jwt
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 app = FastAPI(title="Admin Service API")
 origins = [
@@ -645,3 +647,41 @@ async def send_billing_notifications(
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    'admin_service_request_count',
+    'Total count of requests',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'admin_service_request_latency_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint']
+)
+
+# Add metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+# Add middleware for metrics
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = datetime.utcnow()
+    response = await call_next(request)
+    duration = (datetime.utcnow() - start_time).total_seconds()
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).observe(duration)
+    
+    return response
