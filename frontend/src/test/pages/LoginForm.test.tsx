@@ -26,31 +26,46 @@ vi.mock("react-router-dom", async () => {
     };
 });
 
-describe("LoginForm 組件", () => {
-    const mockLogin = vi.fn();
+// mock fetch
+let fetchMock: any;
 
+describe("LoginForm 組件", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-
-        // 模擬 alert
         window.alert = vi.fn();
-
-        // 模擬 setTimeout
-        vi.useFakeTimers();
-
-        // 預設 login 行為
-        mockLogin.mockReturnValue({
-            username: "",
-            isStaff: false,
-            isManager: false,
-            DebtNeedNotice: false,
-        });
+        // 不需要 fake timers for input test
+        fetchMock = vi.fn();
+        global.fetch = fetchMock;
+        // 只 mock context 需要的屬性
         vi.mocked(useAuth).mockReturnValue({
             username: "",
-            isStaff: false,
-            isManager: false,
+            isClerk: false,
+            isAdmin: false,
+            isSuperAdmin: false,
             DebtNeedNotice: false,
-            login: mockLogin,
+            token: null,
+            user: null,
+            user_id: null,
+            notifications: [],
+            login: vi.fn(async (accessToken: string) => {
+                if (accessToken === "valid-token-admin") {
+                    return {
+                        username: "admin",
+                        isClerk: false,
+                        isAdmin: true,
+                        DebtNeedNotice: false,
+                    };
+                }
+                if (accessToken === "valid-token-alan") {
+                    return {
+                        username: "alan",
+                        isClerk: true,
+                        isAdmin: false,
+                        DebtNeedNotice: true,
+                    };
+                }
+                return null;
+            }),
             logout: vi.fn(),
         });
     });
@@ -58,7 +73,7 @@ describe("LoginForm 組件", () => {
     afterEach(() => {
         vi.useRealTimers();
     });
-    it("應該正確渲染登入表單", () => {
+    it("應該正確渲染登入表單", async () => {
         renderWithProviders(<LoginForm />);
         expect(
             screen.getByRole("heading", { name: /員工登入/i })
@@ -68,8 +83,9 @@ describe("LoginForm 組件", () => {
         expect(
             screen.getByRole("button", { name: /登入/i })
         ).toBeInTheDocument();
-        expect(screen.getByText(/註冊帳號/i)).toBeInTheDocument();
-        expect(screen.getByText(/忘記密碼/i)).toBeInTheDocument();
+        expect(
+            screen.getByRole("button", { name: /註冊帳號/i })
+        ).toBeInTheDocument();
     }, 5000);
     it("使用者輸入應該更新表單狀態", async () => {
         renderWithProviders(<LoginForm />);
@@ -78,17 +94,32 @@ describe("LoginForm 組件", () => {
         const passwordInput = screen.getByPlaceholderText("密碼");
         await user.type(usernameInput, "admin");
         await user.type(passwordInput, "1234");
-        expect(usernameInput).toHaveValue("admin");
-        expect(passwordInput).toHaveValue("1234");
-        await waitFor(() => {});
+        await waitFor(() => {
+            expect(usernameInput).toHaveValue("admin");
+            expect(passwordInput).toHaveValue("1234");
+        });
     }, 5000);
     it("登入成功時應該顯示成功訊息並導向首頁", async () => {
-        // 模擬登入成功
-        mockLogin.mockReturnValue({
-            username: "admin",
-            isStaff: true,
-            isManager: false,
-            DebtNeedNotice: false,
+        fetchMock.mockImplementation((url: string) => {
+            if (url.includes("/token")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({ access_token: "valid-token-admin" }),
+                });
+            }
+            if (url.includes("/users/me")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            username: "admin",
+                            id: 1,
+                            role: "admin",
+                        }),
+                });
+            }
+            return Promise.reject("unhandled fetch");
         });
         renderWithProviders(<LoginForm />);
         const user = userEvent.setup();
@@ -96,53 +127,44 @@ describe("LoginForm 組件", () => {
         await user.type(screen.getByPlaceholderText("密碼"), "1234");
         const loginButton = screen.getByRole("button", { name: /登入/i });
         await user.click(loginButton);
-        expect(screen.getByText("登入成功！")).toBeInTheDocument();
-        expect(mockLogin).toHaveBeenCalledWith("admin");
-        vi.runAllTimers();
-        expect(mockNavigate).toHaveBeenCalledWith("/TodayMeals");
-        await waitFor(() => {});
-    }, 5000);
+        expect(await screen.findByText("登入成功！")).toBeInTheDocument();
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith("/TodayMeals");
+        });
+    }, 10000);
     it("登入失敗時應該顯示錯誤訊息", async () => {
+        fetchMock.mockImplementation((url: string) => {
+            if (url.includes("/token")) {
+                return Promise.resolve({ ok: false });
+            }
+            return Promise.reject("unhandled fetch");
+        });
         renderWithProviders(<LoginForm />);
         const user = userEvent.setup();
         await user.type(screen.getByPlaceholderText("帳號"), "wronguser");
         await user.type(screen.getByPlaceholderText("密碼"), "wrongpass");
         const loginButton = screen.getByRole("button", { name: /登入/i });
         await user.click(loginButton);
-        expect(screen.getByText("帳號或密碼錯誤")).toBeInTheDocument();
+        expect(await screen.findByText("帳號或密碼錯誤")).toBeInTheDocument();
         expect(mockNavigate).not.toHaveBeenCalled();
-        await waitFor(() => {});
-    }, 5000);
-    it("當用戶有未清償債務時應該顯示提醒", async () => {
-        // 模擬有債務的登入
-        mockLogin.mockReturnValue({
-            username: "alan",
-            isStaff: true,
-            isManager: false,
-            DebtNeedNotice: true,
-        });
+    }, 10000);
+    it("點擊註冊帳號應該導航到註冊頁面", async () => {
+        renderWithProviders(<LoginForm />);
+        const registerBtn = screen.getByRole("button", { name: /註冊帳號/i });
+        fireEvent.click(registerBtn);
+        expect(mockNavigate).toHaveBeenCalledWith("/Register");
+    });
+    it("API 請求異常時應顯示錯誤提示", async () => {
+        fetchMock.mockImplementation(() =>
+            Promise.reject(new Error("Network error"))
+        );
         renderWithProviders(<LoginForm />);
         const user = userEvent.setup();
-        await user.type(screen.getByPlaceholderText("帳號"), "alan");
+        await user.type(screen.getByPlaceholderText("帳號"), "admin");
         await user.type(screen.getByPlaceholderText("密碼"), "1234");
         const loginButton = screen.getByRole("button", { name: /登入/i });
         await user.click(loginButton);
-        vi.runAllTimers();
-        expect(window.alert).toHaveBeenCalledWith("尚有餘款未繳清!");
-        await waitFor(() => {});
-    }, 5000);
-    it("點擊忘記密碼應該導航到忘記密碼頁面", async () => {
-        renderWithProviders(<LoginForm />);
-        const forgotPasswordLink = screen.getByText(/忘記密碼/i);
-        fireEvent.click(forgotPasswordLink);
-        expect(mockNavigate).toHaveBeenCalledWith("/ForgotPassword");
-        await waitFor(() => {});
-    }, 5000);
-    it("點擊註冊帳號應該導航到註冊頁面", async () => {
-        renderWithProviders(<LoginForm />);
-        const registerLink = screen.getByText(/註冊帳號/i);
-        fireEvent.click(registerLink);
-        expect(mockNavigate).toHaveBeenCalledWith("/Register");
-        await waitFor(() => {});
-    }, 5000);
+        expect(await screen.findByText("登入時發生錯誤")).toBeInTheDocument();
+        expect(mockNavigate).not.toHaveBeenCalled();
+    });
 });

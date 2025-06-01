@@ -26,6 +26,29 @@ const localStorageMock = (() => {
   }
 })()
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock
-})
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
+
+if (typeof window === "undefined") {
+  // @ts-ignore
+  global.window = global;
+}
+
+if (typeof window.localStorage === "undefined") {
+  // @ts-ignore
+  window.localStorage = localStorageMock;
+}
+
+// beforeEach: 強制設置 i18n 語言與 localStorage 狀態
+import i18n from '../i18n';
+import { beforeEach } from 'vitest';
+beforeEach(() => {
+  localStorageMock.clear();
+  localStorageMock.setItem('language', 'zh'); // 預設語言
+  localStorageMock.setItem('i18nextLng', 'zh'); // 預設語言
+  if (i18n.isInitialized) {
+    i18n.changeLanguage('zh');
+  }
+});
