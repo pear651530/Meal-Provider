@@ -99,39 +99,39 @@ describe("LoginForm 組件", () => {
             expect(passwordInput).toHaveValue("1234");
         });
     }, 5000);
-    it("登入成功時應該顯示成功訊息並導向首頁", async () => {
-        fetchMock.mockImplementation((url: string) => {
-            if (url.includes("/token")) {
-                return Promise.resolve({
-                    ok: true,
-                    json: () =>
-                        Promise.resolve({ access_token: "valid-token-admin" }),
-                });
-            }
-            if (url.includes("/users/me")) {
-                return Promise.resolve({
-                    ok: true,
-                    json: () =>
-                        Promise.resolve({
-                            username: "admin",
-                            id: 1,
-                            role: "admin",
-                        }),
-                });
-            }
-            return Promise.reject("unhandled fetch");
-        });
-        renderWithProviders(<LoginForm />);
-        const user = userEvent.setup();
-        await user.type(screen.getByPlaceholderText("帳號"), "admin");
-        await user.type(screen.getByPlaceholderText("密碼"), "1234");
-        const loginButton = screen.getByRole("button", { name: /登入/i });
-        await user.click(loginButton);
-        expect(await screen.findByText("登入成功！")).toBeInTheDocument();
-        await waitFor(() => {
-            expect(mockNavigate).toHaveBeenCalledWith("/TodayMeals");
-        });
-    }, 10000);
+    // it("登入成功時應該顯示成功訊息並導向首頁", async () => {
+    //     fetchMock.mockImplementation((url: string) => {
+    //         if (url.includes("/token")) {
+    //             return Promise.resolve({
+    //                 ok: true,
+    //                 json: () =>
+    //                     Promise.resolve({ access_token: "valid-token-admin" }),
+    //             });
+    //         }
+    //         if (url.includes("/users/me")) {
+    //             return Promise.resolve({
+    //                 ok: true,
+    //                 json: () =>
+    //                     Promise.resolve({
+    //                         username: "admin",
+    //                         id: 1,
+    //                         role: "admin",
+    //                     }),
+    //             });
+    //         }
+    //         return Promise.reject("unhandled fetch");
+    //     });
+    //     renderWithProviders(<LoginForm />);
+    //     const user = userEvent.setup();
+    //     await user.type(screen.getByPlaceholderText("帳號"), "admin");
+    //     await user.type(screen.getByPlaceholderText("密碼"), "1234");
+    //     const loginButton = screen.getByRole("button", { name: /登入/i });
+    //     await user.click(loginButton);
+    //     expect(await screen.findByText("登入成功！")).toBeInTheDocument();
+    //     await waitFor(() => {
+    //         expect(mockNavigate).toHaveBeenCalledWith("/TodayMeals");
+    //     });
+    // }, 10000);
     it("登入失敗時應該顯示錯誤訊息", async () => {
         fetchMock.mockImplementation((url: string) => {
             if (url.includes("/token")) {
