@@ -3,6 +3,7 @@ import Navbar from "../components/NavBar";
 import "./StaffOrderPage.css";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { getApiUrl } from '../config/api';
 
 interface TodayMeal {
     id: number;
@@ -54,7 +55,7 @@ function StaffOrderPage() {
         const fetchMeals = async () => {
             setLoading(true);
             try {
-                const res = await fetch("http://localhost:8002/menu-items/", {
+                const res = await fetch(getApiUrl('ADMIN_SERVICE', '/menu-items/'), {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -147,7 +148,7 @@ function StaffOrderPage() {
         };
 
         try {
-            const response = await fetch("http://localhost:8001/orders/", {
+            const response = await fetch(getApiUrl('ORDER_SERVICE', '/orders/'), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

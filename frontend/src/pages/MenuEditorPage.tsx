@@ -3,6 +3,7 @@ import Navbar from "../components/NavBar";
 import "./MenuEditorPage.css";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { getApiUrl } from '../config/api';
 //import { console } from "inspector";
 
 interface Comment {
@@ -43,7 +44,7 @@ function MenuEditorPage() {
         const fetchMealsWithRatings = async () => {
             setLoading(true);
             try {
-                const res = await fetch("http://localhost:8002/menu-items/", {
+                const res = await fetch(getApiUrl('ADMIN_SERVICE', '/menu-items/'), {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -60,7 +61,7 @@ function MenuEditorPage() {
                 const mealsWithComments = await Promise.all(
                     menuItems.map(async (item: any) => {
                         const ratingRes = await fetch(
-                            `http://localhost:8000/ratings/${item.id}`,
+                            getApiUrl('USER_SERVICE', `/ratings/${item.id}`),
                             {
                                 method: "GET",
                                 headers: {
@@ -114,7 +115,7 @@ function MenuEditorPage() {
 
         try {
             const res = await fetch(
-                `http://localhost:8002/menu-items/${draggingMealId}/toggle-availability`,
+                getApiUrl('ADMIN_SERVICE', `/menu-items/${draggingMealId}/toggle-availability`),
                 {
                     method: "PUT",
                     headers: {
@@ -195,7 +196,7 @@ function MenuEditorPage() {
     ) => {
         try {
             const res = await fetch(
-                `http://localhost:8002/report/analytics?report_period=${period}`,
+                getApiUrl('ADMIN_SERVICE', `/report/analytics?report_period=${period}`),
                 {
                     method: "GET",
                     headers: {
@@ -234,7 +235,7 @@ function MenuEditorPage() {
         }
 
         try {
-            const res = await fetch("http://localhost:8002/menu-items/", {
+            const res = await fetch(getApiUrl('ADMIN_SERVICE', '/menu-items/'), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -315,7 +316,7 @@ function MenuEditorPage() {
         try {
             // 假設你有 token 與 userId 來作為 changed_by（後端可能會自動抓）
             const res = await fetch(
-                `http://localhost:8002/menu-items/${editMeal.id}/`,
+                getApiUrl('ADMIN_SERVICE', `/menu-items/${editMeal.id}/`),
                 {
                     method: "PUT",
                     headers: {
@@ -361,7 +362,7 @@ function MenuEditorPage() {
             console.log("刪除餐點 ID:", editMeal.id);
             try {
                 const res = await fetch(
-                    `http://localhost:8002/menu-items/${editMeal.id}`,
+                    getApiUrl('ADMIN_SERVICE', `/menu-items/${editMeal.id}`),
                     {
                         method: "DELETE",
                         headers: {

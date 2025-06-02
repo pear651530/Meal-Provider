@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import Navbar from "../components/NavBar";
 import "./TodayMealsPage.css";
 import { useAuth } from "../context/AuthContext";
+import { getApiUrl } from '../config/api';
 
 interface Comment {
     recommended: string;
@@ -79,7 +80,7 @@ function TodayMealsPage(): React.ReactElement {
             setLoading(true);
 
             try {
-                const res = await fetch("http://localhost:8002/menu-items/", {
+                const res = await fetch(getApiUrl('ADMIN_SERVICE', '/menu-items/'), {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -98,18 +99,15 @@ function TodayMealsPage(): React.ReactElement {
                         let comments: Comment[] = [];
 
                         try {
-                            const commentRes = await fetch(
-                                `http://localhost:8000/reviews/${item.id}`,
-                                {
+                            const reviewRes = await fetch(getApiUrl('USER_SERVICE', `/reviews/${item.id}`), {
                                     method: "GET",
                                     headers: {
                                         Authorization: `Bearer ${token}`,
                                     },
-                                }
-                            );
+                            });
 
-                            if (commentRes.ok) {
-                                const commentData = await commentRes.json();
+                            if (reviewRes.ok) {
+                                const commentData = await reviewRes.json();
                                 console.log(
                                     `取得 ${item.id} 的評論成功: `,
                                     commentData

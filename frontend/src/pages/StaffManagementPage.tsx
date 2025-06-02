@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "./StaffManagementPage.css";
 import Navbar from "../components/NavBar";
+import { getApiUrl } from '../config/api';
 
 interface User {
     id: number;
@@ -24,16 +25,13 @@ function StaffManagementPage() {
         // 獲取所有用戶
         const fetchUsers = async () => {
             try {
-                const response = await fetch(
-                    "http://localhost:8000/users/all",
-                    {
+                const response = await fetch(getApiUrl('USER_SERVICE', '/users/all'), {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
                             Authorization: `Bearer ${token}`,
                         },
-                    }
-                );
+                });
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -57,16 +55,13 @@ function StaffManagementPage() {
 
     const handleRoleChange = async (userId: number, newRole: string) => {
         try {
-            const response = await fetch(
-                `http://localhost:8000/users/${userId}/role?new_role=${newRole}`,
-                {
+            const response = await fetch(getApiUrl('USER_SERVICE', `/users/${userId}/role?new_role=${newRole}`), {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                     },
-                }
-            );
+            });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);

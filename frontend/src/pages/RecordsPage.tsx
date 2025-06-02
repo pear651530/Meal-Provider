@@ -5,6 +5,7 @@ import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { getApiUrl } from '../config/api';
 
 interface Record {
     id: number;
@@ -33,7 +34,7 @@ function RecordsPage(): React.ReactElement {
         const userId = (user as any).user_id ?? (user as any).id;
         if (!userId) return;
         setLoading(true);
-        fetch(`http://localhost:8000/users/${userId}/dining-records/`, {
+        fetch(getApiUrl('USER_SERVICE', `/users/${userId}/dining-records/`), {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => {
@@ -49,31 +50,25 @@ function RecordsPage(): React.ReactElement {
                         let meal_zh = item.menu_item_name;
                         let meal_en = item.menu_item_name;
                         try {
-                            const menuRes = await fetch(
-                                `http://localhost:8002/menu-items/${item.menu_item_id}`,
-                                {
+                            const menuItemRes = await fetch(getApiUrl('ADMIN_SERVICE', `/menu-items/${item.menu_item_id}`), {
                                     headers: {
                                         Authorization: `Bearer ${token}`,
                                     },
-                                }
-                            );
-                            if (menuRes.ok) {
-                                const menu = await menuRes.json();
+                            });
+                            if (menuItemRes.ok) {
+                                const menu = await menuItemRes.json();
                                 meal_zh = menu.zh_name;
                                 meal_en = menu.en_name;
                             }
                         } catch (e) {}
                         try {
-                            const res = await fetch(
-                                `http://localhost:8000/dining-records/${item.order_id}/reviews/`,
-                                {
+                            const reviewRes = await fetch(getApiUrl('USER_SERVICE', `/dining-records/${item.order_id}/reviews/`), {
                                     headers: {
                                         Authorization: `Bearer ${token}`,
                                     },
-                                }
-                            );
-                            if (res.ok) {
-                                const review = await res.json();
+                            });
+                            if (reviewRes.ok) {
+                                const review = await reviewRes.json();
                                 if (review.rating === "good") rating = "like";
                                 if (review.rating === "bad") rating = "dislike";
                                 comment = review.comment;
@@ -174,16 +169,13 @@ function RecordsPage(): React.ReactElement {
             return;
         }
         try {
-            const res = await fetch(
-                `http://localhost:8001/orders/${userId}/status?status=paid`,
-                {
+            const res = await fetch(getApiUrl('ORDER_SERVICE', `/orders/${userId}/status?status=paid`), {
                     method: "PUT",
                     headers: {
                         Accept: "application/json",
                         Authorization: `Bearer ${token}`,
                     },
-                }
-            );
+            });
             if (!res.ok) throw new Error(`用戶 ${userId} 結帳失敗`);
             // 更新前端狀態
             setRecords((prev) =>
@@ -224,7 +216,7 @@ function RecordsPage(): React.ReactElement {
             record.comment !== undefined && record.comment !== null
                 ? "PUT"
                 : "POST";
-        const url = `http://localhost:8000/dining-records/${recordId}/reviews/`;
+        const url = getApiUrl('USER_SERVICE', `/dining-records/${recordId}/reviews/`);
         try {
             const res = await fetch(url, {
                 method,
@@ -409,16 +401,13 @@ function RecordsPage(): React.ReactElement {
                                                         ) {
                                                             // 取消 like，刪除評論
                                                             try {
-                                                                await fetch(
-                                                                    `http://localhost:8000/dining-records/${record.id}/reviews/`,
-                                                                    {
+                                                                const res = await fetch(getApiUrl('USER_SERVICE', `/dining-records/${record.id}/reviews/`), {
                                                                         method: "DELETE",
-                                                                        headers:
-                                                                            {
+                                                                    headers: {
                                                                                 Authorization: `Bearer ${token}`,
                                                                             },
-                                                                    }
-                                                                );
+                                                                });
+                                                                if (!res.ok) throw new Error("刪除評論失敗");
                                                                 setRecords(
                                                                     (prev) =>
                                                                         prev.map(
@@ -490,16 +479,13 @@ function RecordsPage(): React.ReactElement {
                                                         ) {
                                                             // 取消 dislike，刪除評論
                                                             try {
-                                                                await fetch(
-                                                                    `http://localhost:8000/dining-records/${record.id}/reviews/`,
-                                                                    {
+                                                                const res = await fetch(getApiUrl('USER_SERVICE', `/dining-records/${record.id}/reviews/`), {
                                                                         method: "DELETE",
-                                                                        headers:
-                                                                            {
+                                                                    headers: {
                                                                                 Authorization: `Bearer ${token}`,
                                                                             },
-                                                                    }
-                                                                );
+                                                                });
+                                                                if (!res.ok) throw new Error("刪除評論失敗");
                                                                 setRecords(
                                                                     (prev) =>
                                                                         prev.map(

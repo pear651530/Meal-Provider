@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useTranslation } from "react-i18next"; // 匯入 translation hook
+import { getApiUrl } from '../config/api';
 
 function Register() {
     const { t } = useTranslation(); // 使用 translation hook
@@ -62,7 +63,7 @@ function Register() {
         // }
 
         try {
-            const response = await fetch("http://localhost:8000/users/", {
+            const response = await fetch(getApiUrl('USER_SERVICE', '/users/'), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -92,7 +93,7 @@ function Register() {
             return;
         }
         try {
-            const response = await fetch("http://localhost:8000/token", {
+            const response = await fetch(getApiUrl('USER_SERVICE', '/token'), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",

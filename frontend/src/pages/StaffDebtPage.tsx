@@ -6,6 +6,7 @@ import $ from "jquery";
 import "./StaffDebtPage.css";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext"; // Import useAuth
+import { getApiUrl } from '../config/api';
 
 interface StaffDebt {
     id: number;
@@ -22,7 +23,7 @@ const StaffDebtPage: React.FC = () => {
         // 取得賒帳狀況資料
         const fetchStaffDebts = async () => {
             try {
-                const res = await fetch("http://localhost:8002/users/unpaid", {
+                const res = await fetch(getApiUrl('ADMIN_SERVICE', '/users/unpaid'), {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -102,15 +103,12 @@ const StaffDebtPage: React.FC = () => {
                 <button
                     onClick={async () => {
                         try {
-                            const res = await fetch(
-                                "http://localhost:8002/billing-notifications/send",
-                                {
+                            const res = await fetch(getApiUrl('ADMIN_SERVICE', '/billing-notifications/send'), {
                                     method: "POST",
                                     headers: {
                                         Authorization: `Bearer ${token}`,
                                     },
-                                }
-                            );
+                            });
                             if (!res.ok) throw new Error("通知發送失敗");
                             alert(t("已發送通知給所有員工"));
                         } catch (err) {

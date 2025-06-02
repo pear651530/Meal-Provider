@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useTranslation } from "react-i18next";
 import "./NavBar.css";
+import { getApiUrl } from '../config/api';
 
 const baseLinkStyle = {
     color: "white",
@@ -34,7 +35,7 @@ function Navbar(): React.ReactElement | null {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/users/${user_id}/notifications`, {
+                const res = await fetch(getApiUrl('USER_SERVICE', `/users/${user_id}/notifications`), {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -56,7 +57,7 @@ function Navbar(): React.ReactElement | null {
 
     const handleMarkAsRead = async (id: number) => {
         try {
-            const res = await fetch(`http://localhost:8000/notifications/${id}/read`, {
+            const res = await fetch(getApiUrl('USER_SERVICE', `/notifications/${id}/read`), {
                 method: "PUT",
                 headers: {
                     Authorization: `Bearer ${token}`,
