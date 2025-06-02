@@ -8,9 +8,9 @@ export default defineConfig({
     include: ["datatables.net-dt"],
   },
   define: {
-    'import.meta.env.VITE_USER_SERVICE_URL': JSON.stringify(process.env.VITE_USER_SERVICE_URL),
-    'import.meta.env.VITE_ORDER_SERVICE_URL': JSON.stringify(process.env.VITE_ORDER_SERVICE_URL),
-    'import.meta.env.VITE_ADMIN_SERVICE_URL': JSON.stringify(process.env.VITE_ADMIN_SERVICE_URL),
+    'import.meta.env.VITE_USER_SERVICE_URL': JSON.stringify(import.meta.env.VITE_USER_SERVICE_URL),
+    'import.meta.env.VITE_ORDER_SERVICE_URL': JSON.stringify(import.meta.env.VITE_ORDER_SERVICE_URL),
+    'import.meta.env.VITE_ADMIN_SERVICE_URL': JSON.stringify(import.meta.env.VITE_ADMIN_SERVICE_URL),
   },
   server: {
     port: 5173,
