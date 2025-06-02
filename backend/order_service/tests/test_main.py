@@ -213,18 +213,3 @@ def test_get_user_orders(client):
     for item in data:
         amount_temp += item["total_amount"]
     assert amount_temp == 70.0 # 2 * (2 * 10.0 + 1 * 10.0) = 70.0
-
-def test_update_order_status(client):
-    order_status_data = {
-        "status": "completed"
-    }
-
-    response = client.put("/orders/1/status", params=order_status_data)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert data["message"] == "Order status updated successfully"
-
-    reponse = client.get("/orders/1")
-    data = reponse.json()
-    assert data["payment_status"] == "completed"

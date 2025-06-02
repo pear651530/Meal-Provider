@@ -20,7 +20,7 @@ interface TodayMeal {
 }
 
 function MenuEditorPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [meals, setMeals] = useState<TodayMeal[]>([]);
     const [draggingMealId, setDraggingMealId] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState<boolean>(false);
@@ -35,7 +35,9 @@ function MenuEditorPage() {
     const [loading, setLoading] = useState(true);
     const { token } = useAuth();
     const [showDownloadForm, setShowDownloadForm] = useState(false);
-    const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
+    const [reportPeriod, setReportPeriod] = useState<
+        "daily" | "weekly" | "monthly"
+    >("weekly");
 
     useEffect(() => {
         const fetchMealsWithRatings = async () => {
@@ -134,7 +136,11 @@ function MenuEditorPage() {
                         : meal
                 )
             );
-            console.log(t("餐點是否為今日餐點已更新"), draggingMealId, toTodayMeal);
+            console.log(
+                t("餐點是否為今日餐點已更新"),
+                draggingMealId,
+                toTodayMeal
+            );
         } catch (err) {
             console.error(err);
             alert(t("無法更新餐點是否為今日餐點，請稍後再試"));
@@ -146,7 +152,9 @@ function MenuEditorPage() {
     const calculateRecommendationRate = (comments: Comment[]) => {
         const count = comments.length;
         const recommended = comments.filter((c) => c.recommended).length;
-        return count === 0 ? "0%" : `${Math.round((recommended / count) * 100)}%`;
+        return count === 0
+            ? "0%"
+            : `${Math.round((recommended / count) * 100)}%`;
     };
 
     const renderMealCard = (meal: TodayMeal) => (
@@ -156,10 +164,22 @@ function MenuEditorPage() {
             onDragStart={() => handleDragStart(meal.id)}
             className="MenuEditor-card"
         >
-            <img src={meal.image} alt={meal.name} className="MenuEditor-card-image" />
-            <h3 className="MenuEditor-card-h3">{meal.name}</h3>
-            <p>{t("價格")}：{meal.price} {t("元")}</p>
-            <p>{t("推薦比例")}：{calculateRecommendationRate(meal.comments)}</p>
+            <img
+                src={meal.image}
+                alt={meal.name}
+                className="MenuEditor-card-image"
+            />
+            <h3 className="MenuEditor-card-h3">
+                {i18n.language.startsWith("en") && meal.englishName
+                    ? meal.englishName
+                    : meal.name}
+            </h3>
+            <p>
+                {t("價格")}：{meal.price} {t("元")}
+            </p>
+            <p>
+                {t("推薦比例")}：{calculateRecommendationRate(meal.comments)}
+            </p>
             <button
                 className="MenuEditor-card-button"
                 onClick={() => setEditMeal(meal)}
@@ -170,14 +190,19 @@ function MenuEditorPage() {
     );
 
     // 下載報表函式
-    const handleDownloadReport = async (period: "daily" | "weekly" | "monthly") => {
+    const handleDownloadReport = async (
+        period: "daily" | "weekly" | "monthly"
+    ) => {
         try {
-            const res = await fetch(`http://localhost:8002/report/analytics?report_period=${period}`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const res = await fetch(
+                `http://localhost:8002/report/analytics?report_period=${period}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             if (!res.ok) throw new Error("無法下載報表");
 
@@ -259,7 +284,12 @@ function MenuEditorPage() {
     const handleSaveEdit = async () => {
         if (!editMeal) return;
 
-        if(!editMeal.name || !editMeal.englishName || !editMeal.price || !editMeal.image) {
+        if (
+            !editMeal.name ||
+            !editMeal.englishName ||
+            !editMeal.price ||
+            !editMeal.image
+        ) {
             alert(t("請填寫完整資訊"));
             return;
         }
@@ -284,24 +314,27 @@ function MenuEditorPage() {
 
         try {
             // 假設你有 token 與 userId 來作為 changed_by（後端可能會自動抓）
-            const res = await fetch(`http://localhost:8002/menu-items/${editMeal.id}/`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    menu_item_id: editMeal.id,
-                    change_type: "update",
-                    new_values: {
-                        zh_name: editMeal.name,
-                        en_name: editMeal.englishName,
-                        price: editMeal.price,
-                        url: editMeal.image,
-                        is_available: editMeal.todayMeal, // 或依狀況帶值
+            const res = await fetch(
+                `http://localhost:8002/menu-items/${editMeal.id}/`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
                     },
-                }),
-            });
+                    body: JSON.stringify({
+                        menu_item_id: editMeal.id,
+                        change_type: "update",
+                        new_values: {
+                            zh_name: editMeal.name,
+                            en_name: editMeal.englishName,
+                            price: editMeal.price,
+                            url: editMeal.image,
+                            is_available: editMeal.todayMeal, // 或依狀況帶值
+                        },
+                    }),
+                }
+            );
 
             if (!res.ok) throw new Error("更新餐點失敗");
 
@@ -327,12 +360,15 @@ function MenuEditorPage() {
             if (!confirmDelete) return;
             console.log("刪除餐點 ID:", editMeal.id);
             try {
-                const res = await fetch(`http://localhost:8002/menu-items/${editMeal.id}`, {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                const res = await fetch(
+                    `http://localhost:8002/menu-items/${editMeal.id}`,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
 
                 if (!res.ok) {
                     throw new Error("刪除失敗");
@@ -359,14 +395,26 @@ function MenuEditorPage() {
             <div className="MenuEditor-page-content">
                 <h2 className="MenuEditor-page-title">{t("菜單調整頁面")}</h2>
 
-                <div onDragOver={(e) => e.preventDefault()} onDrop={() => handleDrop(true)} className="MenuEditor-dropzone today">
+                <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDrop(true)}
+                    className="MenuEditor-dropzone today"
+                >
                     <h3 className="MenuEditor-page-title">{t("今日餐點")}</h3>
-                    <div className="MenuEditor-cards">{todayMeals.map(renderMealCard)}</div>
+                    <div className="MenuEditor-cards">
+                        {todayMeals.map(renderMealCard)}
+                    </div>
                 </div>
 
-                <div onDragOver={(e) => e.preventDefault()} onDrop={() => handleDrop(false)} className="MenuEditor-dropzone not-today">
+                <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDrop(false)}
+                    className="MenuEditor-dropzone not-today"
+                >
                     <h3 className="MenuEditor-page-title">{t("非今日餐點")}</h3>
-                    <div className="MenuEditor-cards">{notTodayMeals.map(renderMealCard)}</div>
+                    <div className="MenuEditor-cards">
+                        {notTodayMeals.map(renderMealCard)}
+                    </div>
                 </div>
 
                 <div className="MenuEditor-buttons">
@@ -379,7 +427,9 @@ function MenuEditorPage() {
                                 const next = !prev;
                                 if (!next) return next;
                                 setTimeout(() => {
-                                    addFormRef.current?.scrollIntoView({ behavior: "smooth" });
+                                    addFormRef.current?.scrollIntoView({
+                                        behavior: "smooth",
+                                    });
                                 }, 100);
                                 return next;
                             });
@@ -395,7 +445,8 @@ function MenuEditorPage() {
                                 if (!next) return next;
                                 setTimeout(() => {
                                     // 捲動視窗到彈窗
-                                    const el = document.getElementById("downloadForm");
+                                    const el =
+                                        document.getElementById("downloadForm");
                                     el?.scrollIntoView({ behavior: "smooth" });
                                 }, 100);
                                 return next;
@@ -414,25 +465,42 @@ function MenuEditorPage() {
                             type="text"
                             placeholder={t("餐點名稱 (必填)")}
                             value={newMeal.name}
-                            onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
+                            onChange={(e) =>
+                                setNewMeal({ ...newMeal, name: e.target.value })
+                            }
                         />
                         <input
                             type="text"
                             placeholder={t("餐點英文名稱 (非必填)")}
                             value={newMeal.englishName}
-                            onChange={(e) => setNewMeal({ ...newMeal, englishName: e.target.value })}
+                            onChange={(e) =>
+                                setNewMeal({
+                                    ...newMeal,
+                                    englishName: e.target.value,
+                                })
+                            }
                         />
                         <input
                             type="number"
                             placeholder={t("價格 (必填)")}
                             value={newMeal.price}
-                            onChange={(e) => setNewMeal({ ...newMeal, price: e.target.value })}
+                            onChange={(e) =>
+                                setNewMeal({
+                                    ...newMeal,
+                                    price: e.target.value,
+                                })
+                            }
                         />
                         <input
                             type="text"
                             placeholder={t("圖片連結 (必填)")}
                             value={newMeal.image}
-                            onChange={(e) => setNewMeal({ ...newMeal, image: e.target.value })}
+                            onChange={(e) =>
+                                setNewMeal({
+                                    ...newMeal,
+                                    image: e.target.value,
+                                })
+                            }
                         />
                         <button onClick={handleAddMeal}>{t("送出新增")}</button>
                     </div>
@@ -472,10 +540,20 @@ function MenuEditorPage() {
                             {t("月報")}
                         </label>
                         <div className="MenuEditor-download-form-buttons">
-                            <button className="MenuEditor-download-button"
-                                onClick={() => handleDownloadReport(reportPeriod)}>{t("下載")}</button>
-                            <button className="MenuEditor-cancel-button"
-                                onClick={() => setShowDownloadForm(false)}>{t("取消")}</button>
+                            <button
+                                className="MenuEditor-download-button"
+                                onClick={() =>
+                                    handleDownloadReport(reportPeriod)
+                                }
+                            >
+                                {t("下載")}
+                            </button>
+                            <button
+                                className="MenuEditor-cancel-button"
+                                onClick={() => setShowDownloadForm(false)}
+                            >
+                                {t("取消")}
+                            </button>
                         </div>
                     </div>
                 )}
@@ -484,42 +562,69 @@ function MenuEditorPage() {
                     <div className="MenuEditor-overlay">
                         <div className="MenuEditor-edit-modal">
                             <h4>{t("編輯餐點資訊")}</h4>
-                            <p>{t("餐點中文名稱")}：
+                            <p>
+                                {t("餐點中文名稱")}：
                                 <input
                                     type="text"
                                     value={editMeal.name}
                                     onChange={(e) =>
-                                        setEditMeal({ ...editMeal, name: e.target.value })
+                                        setEditMeal({
+                                            ...editMeal,
+                                            name: e.target.value,
+                                        })
                                     }
-                                /></p>
-                            <p>{t("餐點英文名稱")}：
+                                />
+                            </p>
+                            <p>
+                                {t("餐點英文名稱")}：
                                 <input
                                     type="text"
                                     value={editMeal.englishName}
                                     onChange={(e) =>
-                                        setEditMeal({ ...editMeal, englishName: e.target.value })
+                                        setEditMeal({
+                                            ...editMeal,
+                                            englishName: e.target.value,
+                                        })
                                     }
-                                /></p>
-                            <p>{t("餐點價格")}：
+                                />
+                            </p>
+                            <p>
+                                {t("餐點價格")}：
                                 <input
                                     type="number"
                                     value={editMeal.price}
                                     onChange={(e) =>
-                                        setEditMeal({ ...editMeal, price: parseInt(e.target.value) })
+                                        setEditMeal({
+                                            ...editMeal,
+                                            price: parseInt(e.target.value),
+                                        })
                                     }
-                                /></p>
-                            <p>{t("餐點圖片")}：
+                                />
+                            </p>
+                            <p>
+                                {t("餐點圖片")}：
                                 <input
                                     type="text"
                                     value={editMeal.image}
                                     onChange={(e) =>
-                                        setEditMeal({ ...editMeal, image: e.target.value })
+                                        setEditMeal({
+                                            ...editMeal,
+                                            image: e.target.value,
+                                        })
                                     }
-                                /></p>
+                                />
+                            </p>
                             <div className="MenuEditor-edit-modal-buttons">
-                                <button onClick={handleSaveEdit}>{t("儲存")}</button>
-                                <button onClick={() => setEditMeal(null)}>{t("取消")}</button>
-                                <button onClick={handleDeleteMeal} className="MenuEditor-delete-button">
+                                <button onClick={handleSaveEdit}>
+                                    {t("儲存")}
+                                </button>
+                                <button onClick={() => setEditMeal(null)}>
+                                    {t("取消")}
+                                </button>
+                                <button
+                                    onClick={handleDeleteMeal}
+                                    className="MenuEditor-delete-button"
+                                >
                                     {t("刪除")}
                                 </button>
                             </div>

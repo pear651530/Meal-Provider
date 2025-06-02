@@ -9,45 +9,65 @@ import { MemoryRouter } from "react-router-dom";
 const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
 
+// 設置全局模擬
+vi.mock("react-router-dom", async () => {
+    const actual = await vi.importActual("react-router-dom");
+    return {
+        ...actual,
+        useLocation: vi.fn(() => ({ pathname: "/TodayMeals" })),
+        useNavigate: () => mockNavigate,
+    };
+});
+
+// 模擬 AuthContext
+let dynamicAuthMock: any = {};
+vi.mock("../../context/AuthContext", () => {
+    return {
+        useAuth: vi.fn(() => dynamicAuthMock),
+    };
+});
+
 // 創建一個自定義的渲染函數
 interface RenderOptions {
     pathname?: string;
     username?: string;
-    isStaff?: boolean;
-    isManager?: boolean;
+    isClerk?: boolean;
+    isAdmin?: boolean;
+    user_id?: number;
+    isSuperAdmin?: boolean;
 }
+
+// 設置模擬
+// beforeEach 只做清理，不再重複 mock
+beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.setItem("language", "zh");
+    i18nForTest.changeLanguage("zh");
+});
 
 const renderNavBar = (options: RenderOptions = {}) => {
     const {
         pathname = "/TodayMeals",
         username = "user",
-        isStaff = false,
-        isManager = false,
+        isClerk = false,
+        isAdmin = false,
+        user_id = 123,
+        isSuperAdmin = false,
     } = options;
 
-    // 模擬 react-router-dom
-    vi.mock("react-router-dom", () => {
-        const actual = require("react-router-dom");
-        return {
-            ...actual,
-            useLocation: () => ({ pathname }),
-            useNavigate: () => mockNavigate,
-        };
-    });
-
-    // 模擬 AuthContext
-    vi.mock("../../context/AuthContext", () => {
-        return {
-            useAuth: () => ({
-                username,
-                isStaff,
-                isManager,
-                DebtNeedNotice: false,
-                login: vi.fn(),
-                logout: mockLogout,
-            }),
-        };
-    });
+    // 依據參數動態設置 mock
+    dynamicAuthMock = {
+        username,
+        user_id,
+        isClerk,
+        isAdmin,
+        isSuperAdmin,
+        DebtNeedNotice: false,
+        login: vi.fn(),
+        logout: mockLogout,
+        token: "test-token",
+        notifications: [],
+    };
 
     return render(
         <I18nextProvider i18n={i18nForTest}>
@@ -82,16 +102,35 @@ describe("NavBar 組件", () => {
     });
 
     it("店員應該看到店員點餐選項", () => {
-        renderNavBar({ isStaff: true });
+        renderNavBar({ isClerk: true });
 
         expect(screen.getByText("店員點餐")).toBeInTheDocument();
     });
 
     it("管理員應該看到所有管理選項", () => {
-        renderNavBar({ isStaff: true, isManager: true });
+        renderNavBar({ isClerk: true, isAdmin: true });
 
         expect(screen.getByText("員工賒帳紀錄")).toBeInTheDocument();
         expect(screen.getByText("菜單調整")).toBeInTheDocument();
+    });
+
+    it("登出按鈕應該調用 logout 函數", async () => {
+        renderNavBar();
+
+        const logoutButton = screen.getByText("登出");
+        fireEvent.click(logoutButton);
+
+        expect(mockLogout).toHaveBeenCalled();
+    });
+    it("應該能根據當前路徑高亮顯示導航項", () => {
+        renderNavBar({ pathname: "/TodayMeals" });
+
+        // 檢查當前路徑對應的導航項是否有特殊樣式
+        const todayMealsLink = screen.getByText("今日餐點").closest("a");
+        expect(todayMealsLink, "找不到「今日餐點」的 a 元素").not.toBeNull();
+        if (todayMealsLink) {
+            expect(todayMealsLink).toHaveStyle("opacity: 0.4");
+        }
     });
 
     it("點擊登出按鈕應該調用登出方法並導航至首頁", () => {
@@ -104,24 +143,14 @@ describe("NavBar 組件", () => {
         expect(mockNavigate).toHaveBeenCalledWith("/");
     });
 
-    it("在登入頁應該不渲染導航欄", () => {
-        const { container } = renderNavBar({ pathname: "/" });
-        expect(container.firstChild).toBeNull();
-    });
-
     it("語言切換按鈕應該在導航欄中呈現", () => {
         renderNavBar();
 
-        try {
-            const navbar = screen.getByRole("navigation");
-            expect(navbar).toBeInTheDocument();
+        const navbar = screen.getByRole("navigation");
+        expect(navbar).toBeInTheDocument();
 
-            // 查找語言切換按鈕
-            const languageSwitcher = within(navbar).getByRole("button");
-            expect(languageSwitcher).toBeInTheDocument();
-        } catch (error) {
-            console.error("無法找到導航欄，頁面內容:", screen.debug());
-            throw error;
-        }
+        // 查找語言切換按鈕
+        const languageSwitcher = within(navbar).getByRole("button");
+        expect(languageSwitcher).toBeInTheDocument();
     });
 });

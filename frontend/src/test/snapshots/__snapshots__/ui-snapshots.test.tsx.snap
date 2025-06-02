@@ -32,6 +32,12 @@ exports[`UI 快照測試 > 一般用戶的 NavBar 組件快照測試 1`] = `
     class="navbar"
     style="background: rgb(51, 51, 51); padding: 10px;"
   >
+    <span
+      style="color: white; margin-right: 20px; font-weight: bold;"
+    >
+      ID
+      ：
+    </span>
     <a
       data-discover="true"
       href="/TodayMeals"
@@ -82,6 +88,12 @@ exports[`UI 快照測試 > 店員的 NavBar 組件快照測試 1`] = `
     class="navbar"
     style="background: rgb(51, 51, 51); padding: 10px;"
   >
+    <span
+      style="color: white; margin-right: 20px; font-weight: bold;"
+    >
+      ID
+      ：
+    </span>
     <a
       data-discover="true"
       href="/TodayMeals"
@@ -139,6 +151,12 @@ exports[`UI 快照測試 > 管理員的 NavBar 組件快照測試 1`] = `
     class="navbar"
     style="background: rgb(51, 51, 51); padding: 10px;"
   >
+    <span
+      style="color: white; margin-right: 20px; font-weight: bold;"
+    >
+      ID
+      ：
+    </span>
     <a
       data-discover="true"
       href="/TodayMeals"

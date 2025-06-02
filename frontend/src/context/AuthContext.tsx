@@ -17,7 +17,7 @@ interface Notification {
     created_at: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
     username: string | null;
     user_id: number | null;
     isClerk: boolean;

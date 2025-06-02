@@ -190,14 +190,25 @@ def send_order_notification(dining_record_item):
     """
     channel, connection = get_rabbitmq_channel()
     
-    notification = {
-        "user_id": dining_record_item["user_id"],
-        "order_id": dining_record_item["order_id"],
-        "menu_item_id": dining_record_item["menu_item_id"],
-        "menu_item_name": dining_record_item["menu_item_name"],
-        "total_amount": dining_record_item["total_amount"],
-        "payment_status": dining_record_item["payment_status"]
-    }
+    if "is_put" not in dining_record_item:
+        notification = {
+            "user_id": dining_record_item["user_id"],
+            "order_id": dining_record_item["order_id"],
+            "menu_item_id": dining_record_item["menu_item_id"],
+            "menu_item_name": dining_record_item["menu_item_name"],
+            "total_amount": dining_record_item["total_amount"],
+            "payment_status": dining_record_item["payment_status"]
+        }
+    else:
+        notification = {
+            "user_id": dining_record_item["user_id"],
+            "order_id": dining_record_item["order_id"],
+            "menu_item_id": dining_record_item["menu_item_id"],
+            "menu_item_name": dining_record_item["menu_item_name"],
+            "total_amount": dining_record_item["total_amount"],
+            "payment_status": dining_record_item["payment_status"],
+            "is_put": dining_record_item["is_put"]
+        }
     
     # Publish notification to RabbitMQ
     channel.basic_publish(

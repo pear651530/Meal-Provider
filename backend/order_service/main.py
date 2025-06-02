@@ -219,19 +219,34 @@ def get_user_orders(
         models.Order.user_id == user_id
     ).offset(skip).limit(limit).all()
 
-@app.put("/orders/{order_id}/status")
+@app.put("/orders/{user_id}/status")
 def update_order_status(
-    order_id: int,
+    user_id: int,
     status: str,
     db: Session = Depends(get_db)
 ):
-    order = db.query(models.Order).filter(models.Order.id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    order.payment_status = status
-    db.commit()
-    return {"message": "Order status updated successfully"} 
+    orders = db.query(models.Order).filter(models.Order.user_id == user_id).all()
+    if not orders:
+        raise HTTPException(status_code=404, detail="No orders found for this user")
+    if status not in ["paid", "unpaid"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    for order in orders:
+        logger.info(f"Updating order {order.id} status to {status}")
+        current_order_items = db.query(models.OrderItem).filter(models.OrderItem.order_id == order.id).all()
+        for item in current_order_items:
+            new_record_dict = {
+                "user_id": user_id,
+                "order_id": order.id,
+                "menu_item_id": item.menu_item_id,
+                "menu_item_name": db.query(models.MenuItem).get(item.menu_item_id).en_name,
+                "total_amount": item.unit_price * item.quantity,
+                "payment_status": status,
+                "is_put": True
+            }
+            order.payment_status = status
+            if os.getenv("IS_TEST") != "true":
+                send_order_notification(new_record_dict)
+
 
 router = APIRouter()
 

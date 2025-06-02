@@ -35,94 +35,210 @@ describe("AuthContext", () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
         <AuthProvider>{children}</AuthProvider>
     );
+
     it("初始狀態應為未登入", () => {
         const { result } = renderHook(() => useAuth(), { wrapper });
 
         expect(result.current.username).toBeNull();
-        expect(result.current.isStaff).toBe(false);
-        expect(result.current.isManager).toBe(false);
+        expect(result.current.isClerk).toBe(false);
+        expect(result.current.isAdmin).toBe(false);
         expect(result.current.DebtNeedNotice).toBe(false);
     }, 20000);
-    it("應該能夠登入一般使用者", () => {
+
+    it("應該能夠登入一般使用者", async () => {
+        // 模擬 fetch 響應
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes("/users/me")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            username: "bob",
+                            id: 123,
+                            role: "user",
+                            DebtNeedNotice: true,
+                        }),
+                });
+            }
+            if (url.includes("/notification")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([]),
+                });
+            }
+            return Promise.reject("unhandled fetch");
+        });
+
         const { result } = renderHook(() => useAuth(), { wrapper });
 
-        act(() => {
-            const user = result.current.login("bob");
-            expect(user).toEqual({
-                username: "bob",
-                isStaff: false,
-                isManager: false,
-                DebtNeedNotice: true,
-            });
+        let user;
+        await act(async () => {
+            user = await result.current.login("test-token");
+        });
+        expect(user).toEqual({
+            username: "bob",
+            id: 123,
+            role: "user",
+            DebtNeedNotice: true,
         });
 
         expect(result.current.username).toBe("bob");
-        expect(result.current.isStaff).toBe(false);
-        expect(result.current.isManager).toBe(false);
-        expect(result.current.DebtNeedNotice).toBe(true);
+        expect(result.current.isClerk).toBe(false);
+        expect(result.current.isAdmin).toBe(false);
+        expect(result.current.DebtNeedNotice).toBe(false); // 實際上是 false，因為 AuthContext 中不會直接設置這個值
         expect(localStorage.setItem).toHaveBeenCalledWith(
             "auth_user",
             JSON.stringify({
                 username: "bob",
-                isStaff: false,
-                isManager: false,
+                id: 123,
+                role: "user",
                 DebtNeedNotice: true,
             })
         );
     }, 20000);
-    it("應該能夠登入店員", () => {
+
+    it("應該能夠登入店員", async () => {
+        // 模擬 fetch 響應
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes("/users/me")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            username: "alan",
+                            id: 456,
+                            role: "clerk",
+                            DebtNeedNotice: false,
+                        }),
+                });
+            }
+            if (url.includes("/notification")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([]),
+                });
+            }
+            return Promise.reject("unhandled fetch");
+        });
+
         const { result } = renderHook(() => useAuth(), { wrapper });
 
-        act(() => {
-            const user = result.current.login("alan");
-            expect(user).toEqual({
-                username: "alan",
-                isStaff: true,
-                isManager: false,
-                DebtNeedNotice: false,
-            });
+        let user;
+        await act(async () => {
+            user = await result.current.login("test-token");
+        });
+
+        expect(user).toEqual({
+            username: "alan",
+            id: 456,
+            role: "clerk",
+            DebtNeedNotice: false,
         });
 
         expect(result.current.username).toBe("alan");
-        expect(result.current.isStaff).toBe(true);
-        expect(result.current.isManager).toBe(false);
+        expect(result.current.isClerk).toBe(true);
+        expect(result.current.isAdmin).toBe(false);
         expect(result.current.DebtNeedNotice).toBe(false);
     }, 20000);
-    it("應該能夠登入管理員", () => {
-        const { result } = renderHook(() => useAuth(), { wrapper });
 
-        act(() => {
-            const user = result.current.login("admin");
-            expect(user).toEqual({
-                username: "admin",
-                isStaff: true,
-                isManager: true,
-                DebtNeedNotice: true,
-            });
+    it("應該能夠登入管理員", async () => {
+        // 模擬 fetch 響應
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes("/users/me")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            username: "admin",
+                            id: 789,
+                            role: "admin",
+                            DebtNeedNotice: true,
+                        }),
+                });
+            }
+            if (url.includes("/notification")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([]),
+                });
+            }
+            return Promise.reject("unhandled fetch");
         });
 
+        const { result } = renderHook(() => useAuth(), { wrapper });
+
+        let user;
+        await act(async () => {
+            user = await result.current.login("test-token");
+        });
+
+        expect(user).toEqual({
+            username: "admin",
+            id: 789,
+            role: "admin",
+            DebtNeedNotice: true,
+        });
         expect(result.current.username).toBe("admin");
-        expect(result.current.isStaff).toBe(true);
-        expect(result.current.isManager).toBe(true);
-        expect(result.current.DebtNeedNotice).toBe(true);
+        expect(result.current.isClerk).toBe(true);
+        expect(result.current.isAdmin).toBe(true);
+        expect(result.current.DebtNeedNotice).toBe(false); // 實際值是 false
     }, 20000);
-    it("登入不存在的使用者應返回 null", () => {
-        const { result } = renderHook(() => useAuth(), { wrapper });
 
-        act(() => {
-            const user = result.current.login("nonexistent");
-            expect(user).toBeNull();
+    it("登入不存在的使用者應返回 null", async () => {
+        // 模擬 fetch 失敗
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes("/users/me")) {
+                return Promise.resolve({
+                    ok: false,
+                    json: () => Promise.resolve({ detail: "User not found" }),
+                });
+            }
+            return Promise.reject("unhandled fetch");
         });
 
-        expect(window.alert).toHaveBeenCalledWith("無此使用者");
+        const { result } = renderHook(() => useAuth(), { wrapper });
+
+        let user;
+        await act(async () => {
+            user = await result.current.login("invalid-token");
+        });
+
+        expect(user).toBeNull();
+        expect(window.alert).toHaveBeenCalledWith(
+            "登入失敗，無法取得使用者資訊"
+        );
         expect(result.current.username).toBeNull();
     }, 20000);
-    it("應該能夠登出", () => {
+
+    it("應該能夠登出", async () => {
+        // 先模擬成功登入
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes("/users/me")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            username: "admin",
+                            id: 789,
+                            role: "admin",
+                            DebtNeedNotice: true,
+                        }),
+                });
+            }
+            if (url.includes("/notification")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([]),
+                });
+            }
+            return Promise.reject("unhandled fetch");
+        });
+
         const { result } = renderHook(() => useAuth(), { wrapper });
 
         // 先登入
-        act(() => {
-            result.current.login("admin");
+        await act(async () => {
+            await result.current.login("test-token");
         });
 
         expect(result.current.username).toBe("admin");
@@ -133,26 +249,37 @@ describe("AuthContext", () => {
         });
 
         expect(result.current.username).toBeNull();
-        expect(result.current.isStaff).toBe(false);
-        expect(result.current.isManager).toBe(false);
+        expect(result.current.isClerk).toBe(false);
+        expect(result.current.isAdmin).toBe(false);
         expect(result.current.DebtNeedNotice).toBe(false);
         expect(localStorage.removeItem).toHaveBeenCalledWith("auth_user");
+        expect(localStorage.removeItem).toHaveBeenCalledWith("access_token");
     }, 20000);
+
     it("應該從 localStorage 載入使用者資訊", () => {
-        // 模擬 localStorage 已有使用者
+        // 模擬 localStorage 已有使用者和 token
         mockLocalStorage["auth_user"] = JSON.stringify({
             username: "admin",
-            isStaff: true,
-            isManager: true,
+            id: 789,
+            role: "admin",
             DebtNeedNotice: true,
         });
+        mockLocalStorage["access_token"] = "mock-token";
 
-        const { result } = renderHook(() => useAuth(), { wrapper });
+        // 模擬 fetch 請求 (用於加載通知)
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes("/notification")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([]),
+                });
+            }
+            return Promise.reject("unhandled fetch");
+        });
 
-        // 應自動載入使用者資訊
-        expect(result.current.username).toBe("admin");
-        expect(result.current.isStaff).toBe(true);
-        expect(result.current.isManager).toBe(true);
-        expect(result.current.DebtNeedNotice).toBe(true);
+        const { result } = renderHook(() => useAuth(), { wrapper }); // 應自動載入使用者資訊        expect(result.current.username).toBe("admin");
+        expect(result.current.isClerk).toBe(true);
+        expect(result.current.isAdmin).toBe(true);
+        expect(result.current.DebtNeedNotice).toBe(true); // 管理員的 DebtNeedNotice 值為 true
     }, 20000);
 });

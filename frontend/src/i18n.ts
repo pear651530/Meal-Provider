@@ -94,11 +94,18 @@ const translations = {
     "推薦比例": "Recommendation Rate",
     "下載報表": "Download report",
     "已下載！": "Downloaded!",
+    "編輯餐點資訊": "Edit Meal Info",
+    "餐點中文名稱": "Meal Chinese Name",
+    "餐點英文名稱": "Meal English Name",
+    "餐點價格": "Meal Price",
+    "餐點圖片": "Meal Image URL",
 
     // TodayMeals
     "今日餐點_頁面": "Today's Meals",
     "👍 推薦": "👍 Recommended",
     "👎 不推薦": "👎 Not Recommended",
+    "收合評論": "Collapse Comments",
+    "查看評論": "Show Comments",
 
     // Records
     "歷史用餐紀錄": "Dining History",
@@ -128,6 +135,7 @@ const translations = {
     "賒帳金額": "Debt Amount",
     "預警選取員工": "Warn Selected Staff",
     "選取的員工 ID: {{ids}}": "Selected employee IDs: {{ids}}",
+    "一鍵通知所有員工": "Notify All Staff",
 
     // StaffOrder
     "員工 ID：": "Employee ID:",
@@ -144,9 +152,17 @@ const translations = {
     // LanguageSwitcher
     "切換語言": "Language",
     "中文": "中文",
-    "英文": "English"
+    "英文": "English",
+
+    //StaffManagement
+    "員工權限管理": "Staff Permission Management",
+    "使用者名稱": "Username",
+    "角色": "Role",
+    "一般員工": "General Staff",
+    "店員": "Clerk",
+    "管理員": "Admin"
   },
-  
+
   zh: {
     // NavBar
     "請盡速繳費!": "請盡速繳費！",
@@ -218,11 +234,18 @@ const translations = {
     "推薦比例": "推薦比例",
     "下載報表": "下載報表",
     "已下載！": "已下載！",
+    "編輯餐點資訊": "編輯餐點資訊",
+    "餐點中文名稱": "餐點中文名稱",
+    "餐點英文名稱": "餐點英文名稱",
+    "餐點價格": "餐點價格",
+    "餐點圖片": "餐點圖片",
 
     // TodayMeals
     "今日餐點_頁面": "今日餐點",
     "👍 推薦": "👍 推薦",
     "👎 不推薦": "👎 不推薦",
+    "收合評論": "收合評論",
+    "查看評論": "查看評論",
 
     // Records
     "歷史用餐紀錄": "歷史用餐紀錄",
@@ -252,6 +275,7 @@ const translations = {
     "賒帳金額": "賒帳金額",
     "預警選取員工": "預警選取員工",
     "選取的員工 ID: {{ids}}": "選取的員工 ID: {{ids}}",
+    "一鍵通知所有員工": "一鍵通知所有員工",
 
     // StaffOrder
     "員工 ID：": "員工 ID：",
@@ -268,17 +292,25 @@ const translations = {
     // LanguageSwitcher
     "切換語言": "切換語言",
     "中文": "中文",
-    "英文": "英文"
+    "英文": "英文",
+
+    //StaffManagement
+    "員工權限管理": "員工權限管理",
+    "使用者名稱": "使用者名稱",
+    "角色": "角色",
+    "一般員工": "一般員工",
+    "店員": "店員",
+    "管理員": "管理員"
   }
 };
 
 // 合併通用翻譯和頁面翻譯
 const resources = {
   en: {
-    translation: {...commonTranslations.en, ...translations.en}
+    translation: { ...commonTranslations.en, ...translations.en }
   },
   zh: {
-    translation: {...commonTranslations.zh, ...translations.zh}
+    translation: { ...commonTranslations.zh, ...translations.zh }
   }
 };
 
