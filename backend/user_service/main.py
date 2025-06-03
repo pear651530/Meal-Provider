@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from sqlalchemy import func
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 import models
 import schemas
@@ -16,10 +18,18 @@ from rabbitmq import setup_rabbitmq, start_consumer_thread, start_order_consumer
 
 # Create FastAPI app
 app = FastAPI(title="User Service API")
+origins = [
+    "http://localhost:5173",  # 你的前端網址
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://meal-provider.example.com",  
+    "https://meal-provider.example.com"  
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,6 +54,19 @@ consumer_thread = None
 DEFAULT_SUPER_ADMIN_USERNAME = "superadmin"
 DEFAULT_SUPER_ADMIN_PASSWORD = "superadmin123"  # Should be changed after first login
 order_consumer_thread = None
+
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    'user_service_request_count',
+    'Total count of requests',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'user_service_request_latency_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint']
+)
 
 @app.on_event("startup")
 async def startup_event():
@@ -143,6 +166,31 @@ def verify_api_key(api_key: str = Header(..., alias="X-API-Key")):
             detail="Invalid API key"
         )
     return api_key
+
+# Add metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+# Add middleware for metrics
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = datetime.utcnow()
+    response = await call_next(request)
+    duration = (datetime.utcnow() - start_time).total_seconds()
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).observe(duration)
+    
+    return response
 
 # 用戶相關路由
 @app.post("/users/", response_model=schemas.User)

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; // 匯入 context
 import LanguageSwitcher from "../components/LanguageSwitcher"; // 匯入語言切換器
 import { useTranslation } from "react-i18next";
+import { getApiUrl } from '../config/api';
 
 function LoginForm() {
     const [username, setUsername] = useState("");
@@ -25,7 +26,7 @@ function LoginForm() {
             return;
         }
         try {
-            const response = await fetch("http://localhost:8000/token", {
+            const response = await fetch(getApiUrl('USER_SERVICE', '/token'), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",

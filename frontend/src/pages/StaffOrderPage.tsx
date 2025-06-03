@@ -3,6 +3,7 @@ import Navbar from "../components/NavBar";
 import "./StaffOrderPage.css";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { getApiUrl } from '../config/api';
 
 interface TodayMeal {
     id: number;
@@ -54,7 +55,7 @@ function StaffOrderPage() {
         const fetchMeals = async () => {
             setLoading(true);
             try {
-                const res = await fetch("http://localhost:8002/menu-items/", {
+                const res = await fetch(getApiUrl('ADMIN_SERVICE', '/menu-items/'), {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -66,16 +67,20 @@ function StaffOrderPage() {
                 const menuItems = await res.json();
 
                 // 只取 is_available === true 的餐點
-                const availableItems = menuItems.filter((item: any) => item.is_available);
+                const availableItems = menuItems.filter(
+                    (item: any) => item.is_available
+                );
 
-                const convertedMeals: TodayMeal[] = availableItems.map((item: any) => ({
-                    id: item.id,
-                    name: item.zh_name,
-                    englishName: item.en_name,
-                    price: item.price,
-                    image: item.url,
-                }));
-                
+                const convertedMeals: TodayMeal[] = availableItems.map(
+                    (item: any) => ({
+                        id: item.id,
+                        name: item.zh_name,
+                        englishName: item.en_name,
+                        price: item.price,
+                        image: item.url,
+                    })
+                );
+
                 setMeals(convertedMeals);
             } catch (err) {
                 console.error(err);
@@ -133,7 +138,7 @@ function StaffOrderPage() {
         const orderRequest = {
             user_id: parseInt(employeeId),
             payment_method: selectedMeal.payment,
-            payment_status: (selectedMeal.payment == "debt") ? "unpaid" : "paid",
+            payment_status: selectedMeal.payment == "debt" ? "unpaid" : "paid",
             items: [
                 {
                     menu_item_id: selectedMeal.meal.id,
@@ -143,7 +148,7 @@ function StaffOrderPage() {
         };
 
         try {
-            const response = await fetch("http://localhost:8001/orders/", {
+            const response = await fetch(getApiUrl('ORDER_SERVICE', '/orders/'), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -199,7 +204,10 @@ function StaffOrderPage() {
                                 />
                                 <div className="staffOrder-meal-info">
                                     <h3>
-                                        {meal.name}{" "}
+                                        {i18n.language.startsWith("en") &&
+                                        meal.englishName
+                                            ? meal.englishName
+                                            : meal.name}{" "}
                                         <span className="staffOrder-meal-price">
                                             {meal.price} {t("元")}
                                         </span>

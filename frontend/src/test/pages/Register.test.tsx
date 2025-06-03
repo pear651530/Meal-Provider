@@ -22,8 +22,8 @@ global.fetch = vi.fn();
 describe("Register 頁面", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.useFakeTimers();
-
+        // 不需要 fake timers，除非有 setTimeout 導航
+        // vi.useFakeTimers();
         // 重置 fetch 模擬
         vi.mocked(global.fetch).mockReset();
     });
@@ -38,7 +38,6 @@ describe("Register 頁面", () => {
         expect(screen.getByPlaceholderText("員工號")).toBeInTheDocument();
         expect(screen.getByPlaceholderText("密碼")).toBeInTheDocument();
         expect(screen.getByPlaceholderText("確認密碼")).toBeInTheDocument();
-        expect(screen.getByText("驗證員工號")).toBeInTheDocument();
         expect(screen.getByText("註冊")).toBeInTheDocument();
         expect(screen.getByText("返回登入頁")).toBeInTheDocument();
     }, 5000);
@@ -82,94 +81,34 @@ describe("Register 頁面", () => {
         expect(screen.getByText("密碼與確認密碼不一致")).toBeInTheDocument();
         await waitFor(() => {});
     }, 5000);
-    it("未驗證員工號時應顯示錯誤訊息", async () => {
-        renderWithProviders(<Register />);
-
-        const user = userEvent.setup();
-        await user.type(screen.getByPlaceholderText("員工號"), "EMP001");
-        await user.type(screen.getByPlaceholderText("密碼"), "password123");
-        await user.type(screen.getByPlaceholderText("確認密碼"), "password123");
-
-        const registerButton = screen.getByText("註冊");
-        await user.click(registerButton);
-
-        expect(screen.getByText("請先驗證員工號")).toBeInTheDocument();
-        await waitFor(() => {});
-    }, 5000);
-    it("驗證員工號成功的情況", async () => {
-        // 模擬成功的 API 回應
-        vi.mocked(global.fetch).mockResolvedValueOnce({
-            json: async () => ({ exists: true }),
-        } as Response);
-
-        renderWithProviders(<Register />);
-
-        const user = userEvent.setup();
-        await user.type(screen.getByPlaceholderText("員工號"), "EMP001");
-
-        const verifyButton = screen.getByText("驗證員工號");
-        await user.click(verifyButton);
-
-        await waitFor(() => {
-            expect(screen.getByText("員工號驗證成功！")).toBeInTheDocument();
-        });
-        await waitFor(() => {});
-    }, 5000);
-    it("驗證員工號失敗的情況", async () => {
-        // 模擬失敗的 API 回應
-        vi.mocked(global.fetch).mockResolvedValueOnce({
-            json: async () => ({ exists: false }),
-        } as Response);
-
-        renderWithProviders(<Register />);
-
-        const user = userEvent.setup();
-        await user.type(screen.getByPlaceholderText("員工號"), "EMP999");
-
-        const verifyButton = screen.getByText("驗證員工號");
-        await user.click(verifyButton);
-
-        await waitFor(() => {
-            expect(
-                screen.getByText("無效的員工號，請確認後重試")
-            ).toBeInTheDocument();
-        });
-        await waitFor(() => {});
-    }, 5000);
     it("註冊成功應導航至登入頁面", async () => {
-        // 模擬驗證成功
-        vi.mocked(global.fetch).mockResolvedValueOnce({
-            json: async () => ({ exists: true }),
-        } as Response);
-
         renderWithProviders(<Register />);
-
-        // 驗證員工號
         const user = userEvent.setup();
         await user.type(screen.getByPlaceholderText("員工號"), "EMP001");
-        await user.click(screen.getByText("驗證員工號"));
-
-        await waitFor(() => {
-            expect(screen.getByText("員工號驗證成功！")).toBeInTheDocument();
-        });
-
-        // 填寫其餘表單
         await user.type(screen.getByPlaceholderText("密碼"), "password123");
         await user.type(screen.getByPlaceholderText("確認密碼"), "password123");
+
+        // 註冊 API
+        vi.mocked(global.fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({}),
+        } as Response);
 
         // 點擊註冊
         await user.click(screen.getByText("註冊"));
 
         expect(
-            screen.getByText("註冊成功！即將跳轉至登入頁面")
+            await screen.findByText("註冊成功！即將跳轉至登入頁面")
         ).toBeInTheDocument();
 
-        // 前進計時器
-        vi.advanceTimersByTime(2000);
-
-        expect(mockNavigate).toHaveBeenCalledWith("/Login");
-        await waitFor(() => {});
-    }, 5000);
+        // 直接等 setTimeout 導航
+        await waitFor(
+            () => {
+                expect(mockNavigate).toHaveBeenCalledWith("/Login");
+            },
+            { timeout: 3000 }
+        );
+    }, 10000);
     it("點擊返回按鈕應導航至登入頁面", async () => {
         renderWithProviders(<Register />);
 

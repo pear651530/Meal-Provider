@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getApiUrl } from '../config/api';
 
 type User = {
     username: string;
@@ -17,7 +18,7 @@ interface Notification {
     created_at: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
     username: string | null;
     user_id: number | null;
     isClerk: boolean;
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             // 載入通知
             if (userData.user_id || userData.id) {
                 const userId = userData.user_id ?? userData.id;
-                fetch(`http://localhost:8000/users/${userId}/notification`, {
+                fetch(getApiUrl('USER_SERVICE', `/users/${userId}/notification`), {
                     headers: { Authorization: `Bearer ${savedToken}` },
                 })
                     .then((res) => (res.ok ? res.json() : []))
@@ -94,7 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setToken(accessToken);
         localStorage.setItem("access_token", accessToken);
         try {
-            const res = await fetch("http://localhost:8000/users/me", {
+            const res = await fetch(getApiUrl('USER_SERVICE', '/users/me'), {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
             if (!res.ok) throw new Error("取得使用者資訊失敗");
@@ -120,7 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (userId) {
                 try {
                     const notiRes = await fetch(
-                        `http://localhost:8000/users/${userId}/notification`,
+                        getApiUrl('USER_SERVICE', `/users/${userId}/notification`),
                         {
                             headers: { Authorization: `Bearer ${accessToken}` },
                         }

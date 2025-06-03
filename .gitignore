@@ -29,3 +29,6 @@ dist-ssr
 **__pycache__**
 alembic.ini
 **alembic**
+**.coverage
+
+frontend/coverage/**

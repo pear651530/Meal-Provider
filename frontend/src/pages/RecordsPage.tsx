@@ -5,15 +5,17 @@ import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
+import { getApiUrl } from '../config/api';
 
 interface Record {
     id: number;
-    date: string; // Add date field
-    meal: string;
+    date: string;
+    meal_zh: string;
+    meal_en: string;
     price: number;
     paid: boolean;
-    rating?: "like" | "dislike"; // 評價欄位
-    comment?: string; // 評價內容
+    rating?: "like" | "dislike";
+    comment?: string;
 }
 
 function RecordsPage(): React.ReactElement {
@@ -32,7 +34,7 @@ function RecordsPage(): React.ReactElement {
         const userId = (user as any).user_id ?? (user as any).id;
         if (!userId) return;
         setLoading(true);
-        fetch(`http://localhost:8000/users/${userId}/dining-records/`, {
+        fetch(getApiUrl('USER_SERVICE', `/users/${userId}/dining-records/`), {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => {
@@ -40,30 +42,38 @@ function RecordsPage(): React.ReactElement {
                 return res.json();
             })
             .then(async (data) => {
-                console.log("[DEBUG] dining-records API 回傳：", data); // 新增 log
-                // 並行取得每筆紀錄的評論
+                // 並行取得每筆紀錄的評論與餐點名稱
                 const recordsWithReviews = await Promise.all(
                     data.map(async (item: any) => {
                         let rating: "like" | "dislike" | undefined = undefined;
                         let comment: string | undefined = undefined;
+                        let meal_zh = item.menu_item_name;
+                        let meal_en = item.menu_item_name;
                         try {
-                            const res = await fetch(
-                                `http://localhost:8000/dining-records/${item.order_id}/reviews/`,
-                                {
+                            const menuItemRes = await fetch(getApiUrl('ADMIN_SERVICE', `/menu-items/${item.menu_item_id}`), {
                                     headers: {
                                         Authorization: `Bearer ${token}`,
                                     },
-                                }
-                            );
-                            if (res.ok) {
-                                const review = await res.json();
+                            });
+                            if (menuItemRes.ok) {
+                                const menu = await menuItemRes.json();
+                                meal_zh = menu.zh_name;
+                                meal_en = menu.en_name;
+                            }
+                        } catch (e) {}
+                        try {
+                            const reviewRes = await fetch(getApiUrl('USER_SERVICE', `/dining-records/${item.order_id}/reviews/`), {
+                                    headers: {
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                            });
+                            if (reviewRes.ok) {
+                                const review = await reviewRes.json();
                                 if (review.rating === "good") rating = "like";
                                 if (review.rating === "bad") rating = "dislike";
                                 comment = review.comment;
                             }
-                        } catch (e) {
-                            // 沒有評論或 API 失敗可忽略
-                        }
+                        } catch (e) {}
                         return {
                             id: item.order_id,
                             date: new Date(
@@ -78,7 +88,8 @@ function RecordsPage(): React.ReactElement {
                                 minute: "2-digit",
                                 hour12: false,
                             }),
-                            meal: item.menu_item_name,
+                            meal_zh,
+                            meal_en,
                             price: item.total_amount,
                             paid: item.payment_status === "paid",
                             rating,
@@ -86,7 +97,7 @@ function RecordsPage(): React.ReactElement {
                         };
                     })
                 );
-                setRecords(recordsWithReviews.sort((a, b) => b.id - a.id)); // 依 id 由大到小排序，最新在上
+                setRecords(recordsWithReviews.sort((a, b) => b.id - a.id));
             })
             .catch((err) => {
                 setRecords([]);
@@ -150,8 +161,30 @@ function RecordsPage(): React.ReactElement {
 
     const nextPaymentDeadline = "2025-05-31"; // 假設下一次結帳期限
 
-    const handleImmediatePayment = () => {
-        alert(t("馬上結帳功能尚未實作！"));
+    const handleImmediatePayment = async () => {
+        // 取得當前登入的 userId
+        const userId = (user as any)?.user_id ?? (user as any)?.id;
+        if (!userId) {
+            alert(t("找不到使用者 ID"));
+            return;
+        }
+        try {
+            const res = await fetch(getApiUrl('ORDER_SERVICE', `/orders/${userId}/status?status=paid`), {
+                    method: "PUT",
+                    headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+            });
+            if (!res.ok) throw new Error(`用戶 ${userId} 結帳失敗`);
+            // 更新前端狀態
+            setRecords((prev) =>
+                prev.map((r) => (r.paid ? r : { ...r, paid: true }))
+            );
+            alert(t("所有未付款訂單已成功結帳！"));
+        } catch (err: any) {
+            alert(t("結帳失敗：") + (err.message || err));
+        }
     };
 
     // 修改 handleSaveComment，根據是否已有評論決定 POST/PUT，並讓 like/dislike 按鈕也能正確更新
@@ -183,7 +216,7 @@ function RecordsPage(): React.ReactElement {
             record.comment !== undefined && record.comment !== null
                 ? "PUT"
                 : "POST";
-        const url = `http://localhost:8000/dining-records/${recordId}/reviews/`;
+        const url = getApiUrl('USER_SERVICE', `/dining-records/${recordId}/reviews/`);
         try {
             const res = await fetch(url, {
                 method,
@@ -308,7 +341,12 @@ function RecordsPage(): React.ReactElement {
                             {records.map((record) => (
                                 <tr key={record.id}>
                                     <td>{record.date}</td>
-                                    <td>{record.meal}</td>
+                                    <td>
+                                        {i18n.language === "zh-TW" ||
+                                        i18n.language === "zh"
+                                            ? record.meal_zh
+                                            : record.meal_en}
+                                    </td>
                                     <td>
                                         {record.price} {t("元")}
                                     </td>
@@ -363,16 +401,13 @@ function RecordsPage(): React.ReactElement {
                                                         ) {
                                                             // 取消 like，刪除評論
                                                             try {
-                                                                await fetch(
-                                                                    `http://localhost:8000/dining-records/${record.id}/reviews/`,
-                                                                    {
+                                                                const res = await fetch(getApiUrl('USER_SERVICE', `/dining-records/${record.id}/reviews/`), {
                                                                         method: "DELETE",
-                                                                        headers:
-                                                                            {
+                                                                    headers: {
                                                                                 Authorization: `Bearer ${token}`,
                                                                             },
-                                                                    }
-                                                                );
+                                                                });
+                                                                if (!res.ok) throw new Error("刪除評論失敗");
                                                                 setRecords(
                                                                     (prev) =>
                                                                         prev.map(
@@ -444,16 +479,13 @@ function RecordsPage(): React.ReactElement {
                                                         ) {
                                                             // 取消 dislike，刪除評論
                                                             try {
-                                                                await fetch(
-                                                                    `http://localhost:8000/dining-records/${record.id}/reviews/`,
-                                                                    {
+                                                                const res = await fetch(getApiUrl('USER_SERVICE', `/dining-records/${record.id}/reviews/`), {
                                                                         method: "DELETE",
-                                                                        headers:
-                                                                            {
+                                                                    headers: {
                                                                                 Authorization: `Bearer ${token}`,
                                                                             },
-                                                                    }
-                                                                );
+                                                                });
+                                                                if (!res.ok) throw new Error("刪除評論失敗");
                                                                 setRecords(
                                                                     (prev) =>
                                                                         prev.map(
@@ -571,13 +603,14 @@ function RecordsPage(): React.ReactElement {
                 <button
                     onClick={handleImmediatePayment}
                     style={{
-                        backgroundColor: "#ff5722",
+                        backgroundColor: debtAmount === 0 ? "#aaa" : "#ff5722",
                         color: "white",
                         border: "none",
                         padding: "10px 20px",
                         borderRadius: "5px",
-                        cursor: "pointer",
+                        cursor: debtAmount === 0 ? "not-allowed" : "pointer",
                     }}
+                    disabled={debtAmount === 0}
                 >
                     {t("馬上結帳")}
                 </button>

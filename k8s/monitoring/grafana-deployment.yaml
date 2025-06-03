@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
+  namespace: meal-provider
 spec:
   replicas: 1
   selector:
@@ -48,6 +49,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: grafana
+  namespace: meal-provider
 spec:
   type: ClusterIP
   ports:
@@ -60,6 +62,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-pvc
+  namespace: meal-provider
 spec:
   accessModes:
     - ReadWriteOnce
@@ -71,6 +74,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
+  namespace: meal-provider
 data:
   prometheus.yaml: |
     apiVersion: 1

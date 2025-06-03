@@ -1,4 +1,3 @@
-
 import requests
 import io
 import os
@@ -13,6 +12,8 @@ from typing import List
 from datetime import datetime
 from sqlalchemy import func
 from datetime import date, datetime, time ,timedelta
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 import models
 import schemas
@@ -21,9 +22,18 @@ from database import get_db
 from rabbitmq import *
 
 app = FastAPI(title="Order Service API")
+origins = [
+    "http://localhost:5173",  # 你的前端網址
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://meal-provider.example.com",  
+    "https://meal-provider.example.com"  
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,6 +43,19 @@ app.add_middleware(
 USER_SERVICE_URL = "http://user-service:8000"
 
 consumer_thread = None
+
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    'order_service_request_count',
+    'Total count of requests',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'order_service_request_latency_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint']
+)
 
 @app.on_event("startup")
 async def startup_event():
@@ -68,6 +91,30 @@ async def shutdown_event():
         # The thread is a daemon thread, so it will be terminated when the main process exits
         pass
 
+# Add metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+# Add middleware for metrics
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = datetime.utcnow()
+    response = await call_next(request)
+    duration = (datetime.utcnow() - start_time).total_seconds()
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).observe(duration)
+    
+    return response
 
 # 驗證用戶token的依賴
 async def verify_token(token: str, db: Session = Depends(get_db)):
@@ -174,19 +221,34 @@ def get_user_orders(
         models.Order.user_id == user_id
     ).offset(skip).limit(limit).all()
 
-@app.put("/orders/{order_id}/status")
+@app.put("/orders/{user_id}/status")
 def update_order_status(
-    order_id: int,
+    user_id: int,
     status: str,
     db: Session = Depends(get_db)
 ):
-    order = db.query(models.Order).filter(models.Order.id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    order.payment_status = status
-    db.commit()
-    return {"message": "Order status updated successfully"} 
+    orders = db.query(models.Order).filter(models.Order.user_id == user_id).all()
+    if not orders:
+        raise HTTPException(status_code=404, detail="No orders found for this user")
+    if status not in ["paid", "unpaid"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    for order in orders:
+        logger.info(f"Updating order {order.id} status to {status}")
+        current_order_items = db.query(models.OrderItem).filter(models.OrderItem.order_id == order.id).all()
+        for item in current_order_items:
+            new_record_dict = {
+                "user_id": user_id,
+                "order_id": order.id,
+                "menu_item_id": item.menu_item_id,
+                "menu_item_name": db.query(models.MenuItem).get(item.menu_item_id).en_name,
+                "total_amount": item.unit_price * item.quantity,
+                "payment_status": status,
+                "is_put": True
+            }
+            order.payment_status = status
+            if os.getenv("IS_TEST") != "true":
+                send_order_notification(new_record_dict)
+
 
 router = APIRouter()
 

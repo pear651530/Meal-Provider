@@ -52,9 +52,14 @@ describe("UI 快照測試", () => {
     it("一般用戶的 NavBar 組件快照測試", () => {
         vi.mocked(useAuth).mockReturnValue({
             username: "regular-user",
-            isStaff: false,
-            isManager: false,
+            isClerk: false,
+            isAdmin: false,
+            isSuperAdmin: false,
             DebtNeedNotice: false,
+            token: null,
+            user: null,
+            user_id: null,
+            notifications: [],
             login: vi.fn(),
             logout: vi.fn(),
         });
@@ -65,9 +70,14 @@ describe("UI 快照測試", () => {
     it("店員的 NavBar 組件快照測試", () => {
         vi.mocked(useAuth).mockReturnValue({
             username: "staff-user",
-            isStaff: true,
-            isManager: false,
+            isClerk: true,
+            isAdmin: false,
+            isSuperAdmin: false,
             DebtNeedNotice: false,
+            token: null,
+            user: null,
+            user_id: null,
+            notifications: [],
             login: vi.fn(),
             logout: vi.fn(),
         });
@@ -78,9 +88,14 @@ describe("UI 快照測試", () => {
     it("管理員的 NavBar 組件快照測試", () => {
         vi.mocked(useAuth).mockReturnValue({
             username: "manager-user",
-            isStaff: true,
-            isManager: true,
+            isClerk: true,
+            isAdmin: true,
+            isSuperAdmin: false,
             DebtNeedNotice: false,
+            token: null,
+            user: null,
+            user_id: null,
+            notifications: [],
             login: vi.fn(),
             logout: vi.fn(),
         });

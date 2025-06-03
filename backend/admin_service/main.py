@@ -19,11 +19,17 @@ from fastapi import Security
 from googletrans import Translator
 from fastapi.middleware.cors import CORSMiddleware
 import jwt
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 app = FastAPI(title="Admin Service API")
 origins = [
     "http://localhost:5173",  # 你的前端網址
     "http://127.0.0.1:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://meal-provider.example.com",  
+    "https://meal-provider.example.com"  
 ]
 
 app.add_middleware(
@@ -138,12 +144,12 @@ async def get_all_menu_items(
 async def get_menu_item(
     menu_item_id: int,
     db: Session = Depends(get_db),
-    admin: dict = Security(verify_admin)
+    #admin: dict = Security(verify_admin)
 ) -> schemas.MenuItem:
     # 軟刪除後，預設只查詢未被軟刪除的菜品
     menu_item = db.query(models.MenuItem).filter(
         models.MenuItem.id == menu_item_id, 
-        models.MenuItem.is_deleted == False
+        #models.MenuItem.is_deleted == False
     ).first()
     if not menu_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found or has been deleted")
@@ -643,3 +649,41 @@ async def send_billing_notifications(
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    'admin_service_request_count',
+    'Total count of requests',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'admin_service_request_latency_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint']
+)
+
+# Add metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+# Add middleware for metrics
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = datetime.utcnow()
+    response = await call_next(request)
+    duration = (datetime.utcnow() - start_time).total_seconds()
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).observe(duration)
+    
+    return response

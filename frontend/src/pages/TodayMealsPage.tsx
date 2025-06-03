@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import Navbar from "../components/NavBar";
 import "./TodayMealsPage.css";
 import { useAuth } from "../context/AuthContext";
+import { getApiUrl } from '../config/api';
 
 interface Comment {
     recommended: string;
@@ -20,10 +21,12 @@ interface TodayMeal {
 }
 
 function TodayMealsPage(): React.ReactElement {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [meals, setMeals] = useState<TodayMeal[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [expandedMeals, setExpandedMeals] = useState<Record<number, boolean>>({});
+    const [expandedMeals, setExpandedMeals] = useState<Record<number, boolean>>(
+        {}
+    );
     const { token } = useAuth();
 
     // useEffect(() => {
@@ -75,9 +78,9 @@ function TodayMealsPage(): React.ReactElement {
     useEffect(() => {
         const fetchMealsWithRatings = async () => {
             setLoading(true);
-            
+
             try {
-                const res = await fetch("http://localhost:8002/menu-items/", {
+                const res = await fetch(getApiUrl('ADMIN_SERVICE', '/menu-items/'), {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -94,18 +97,21 @@ function TodayMealsPage(): React.ReactElement {
                 const mealsWithComments = await Promise.all(
                     menuItems.map(async (item: any) => {
                         let comments: Comment[] = [];
-                        
+
                         try {
-                            const commentRes = await fetch(`http://localhost:8000/reviews/${item.id}`, {
-                                method: "GET",
-                                headers: {
-                                    Authorization: `Bearer ${token}`,
-                                },
+                            const reviewRes = await fetch(getApiUrl('USER_SERVICE', `/reviews/${item.id}`), {
+                                    method: "GET",
+                                    headers: {
+                                        Authorization: `Bearer ${token}`,
+                                    },
                             });
 
-                            if (commentRes.ok) {
-                                const commentData = await commentRes.json();
-                                console.log(`取得 ${item.id} 的評論成功: `, commentData);
+                            if (reviewRes.ok) {
+                                const commentData = await reviewRes.json();
+                                console.log(
+                                    `取得 ${item.id} 的評論成功: `,
+                                    commentData
+                                );
                                 comments = commentData.map((c: any) => ({
                                     recommended: c.rating,
                                     text: c.comment,
@@ -114,7 +120,10 @@ function TodayMealsPage(): React.ReactElement {
                                 //console.warn(`無法取得 ${item.id} 的評論`);
                             }
                         } catch (err) {
-                            console.warn(`取得 ${item.id} 的評論時發生錯誤`, err);
+                            console.warn(
+                                `取得 ${item.id} 的評論時發生錯誤`,
+                                err
+                            );
                         }
 
                         return {
@@ -143,8 +152,12 @@ function TodayMealsPage(): React.ReactElement {
 
     const calculateRecommendationRate = (comments: Comment[]): string => {
         if (comments.length === 0) return "None";
-        const recommendedCount = comments.filter((c) => c.recommended == "good").length;
-        const percentage = Math.round((recommendedCount / comments.length) * 100);
+        const recommendedCount = comments.filter(
+            (c) => c.recommended == "good"
+        ).length;
+        const percentage = Math.round(
+            (recommendedCount / comments.length) * 100
+        );
         return `${percentage}%`;
     };
 
@@ -174,28 +187,46 @@ function TodayMealsPage(): React.ReactElement {
                                 />
                                 <div className="meal-info">
                                     <h3>
-                                        {meal.name}{" "}
+                                        {i18n.language.startsWith("en") &&
+                                        meal.englishName
+                                            ? meal.englishName
+                                            : meal.name}{" "}
                                         <span className="meal-price">
                                             {meal.price} {t("元")}
                                         </span>
                                     </h3>
-                                    <p>{t("推薦比例")}：{calculateRecommendationRate(meal.comments)}</p>
+                                    <p>
+                                        {t("推薦比例")}：
+                                        {calculateRecommendationRate(
+                                            meal.comments
+                                        )}
+                                    </p>
 
                                     {expandedMeals[meal.id] && (
                                         <div className="comment-list-wrapper">
                                             <ul className="comment-list">
                                                 {meal.comments
-                                                    .filter((comment) => comment.text.trim() !== "")
+                                                    .filter(
+                                                        (comment) =>
+                                                            comment.text.trim() !==
+                                                            ""
+                                                    )
                                                     .map((comment, index) => (
                                                         <li
                                                             key={index}
                                                             className={
-                                                                comment.recommended == "good"
+                                                                comment.recommended ==
+                                                                "good"
                                                                     ? "recommended"
                                                                     : "not-recommended"
                                                             }
                                                         >
-                                                            {comment.recommended == "good" ? t("👍 推薦") : t("👎 不推薦")}
+                                                            {comment.recommended ==
+                                                            "good"
+                                                                ? t("👍 推薦")
+                                                                : t(
+                                                                      "👎 不推薦"
+                                                                  )}
                                                             {`：${comment.text}`}
                                                         </li>
                                                     ))}
@@ -211,10 +242,11 @@ function TodayMealsPage(): React.ReactElement {
                                             }))
                                         }
                                     >
-                                        {expandedMeals[meal.id] ? t("收合評論") : t("查看評論")}
+                                        {expandedMeals[meal.id]
+                                            ? t("收合評論")
+                                            : t("查看評論")}
                                     </button>
                                 </div>
-
                             </div>
                         ))}
                 </div>
