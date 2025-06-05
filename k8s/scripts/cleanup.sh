@@ -66,11 +66,6 @@ kubectl delete -f ../rabbitmq/rabbitmq-config.yaml --ignore-not-found
 kubectl delete -f ../rabbitmq/rabbitmq-statefulset.yaml --ignore-not-found
 kubectl delete -f ../rabbitmq/rabbitmq-service.yaml --ignore-not-found
 
-# 刪除 Redis
-print_info "Deleting Redis..."
-kubectl delete -f ../cache/redis-deployment.yaml --ignore-not-found
-kubectl delete -f ../cache/redis-service.yaml --ignore-not-found
-
 # 刪除數據庫
 print_info "Deleting databases..."
 kubectl delete -f ../database/postgres-config.yaml --ignore-not-found
